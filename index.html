@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <title>Game Sound Lab</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="logo-title">
+                    <div class="logo"></div>
+                    <div class="title-block">
+                        <h1>Game Sound Lab</h1>
+                        <div class="subtitle">
+                            Tweak oscillators, envelopes, pitch, FM, vibrato, and FX. 
+                            When you find something you love, copy the settings into your game.
+                        </div>
+                    </div>
+                </div>
+                <div class="header-divider"></div>
+            </div>
+
+            <!-- ACTION BAR -->
+            <div class="action-bar">
+                <div class="action-bar-title">Chime Synth</div>
+
+                <div class="action-bar-controls">
+                    <button type="button" id="playBtn">Play</button>
+                    <button type="button" id="stopBtn">Stop</button>
+                    <button type="button" id="randomBtn">Randomize</button>
+                    <button type="button" id="brightChimeBtn">Bright Chime</button>
+                    <button type="button" id="marioJumpBtn">Mario Jump</button>
+                    <button type="button" id="marioCoinBtn">Mario Coin</button>
+                </div>
+            </div>
+
+            <!-- PANELS -->
+
+            <div class="sections">
+
+                <!-- OSCILLATORS -->
+
+                <div class="panel">
+                    <h2>Oscillators</h2>
+                    <div class="panel-divider"></div>
+                    <label class="group">
+                        <div class="label-row">
+                            Base Frequency (Hz)
+                            <span class="value" id="freqValue">880</span>
+                        </div>
+                        <input type="range" id="freq" min="200" max="6000" value="880">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Detune Amount (cents)
+                            <span class="value" id="detuneValue">8</span>
+                        </div>
+                        <input type="range" id="detune" min="0" max="40" value="8">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Inharmonic Spread
+                            <span class="value" id="inharmValue">0.35</span>
+                        </div>
+                        <input type="range" id="inharm" min="0" max="1" step="0.01" value="0.35">
+                    </label>
+
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="oscSine" checked>
+                        <label for="oscSine">Sine</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="oscTriangle" checked>
+                        <label for="oscTriangle">Triangle</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="oscSquare">
+                        <label for="oscSquare">Square</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="oscSaw">
+                        <label for="oscSaw">Sawtooth</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="useInharm" checked>
+                        <label for="useInharm">Use inharmonic partials</label>
+                    </div>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="stereoSpread" checked>
+                        <label for="stereoSpread">Stereo spread</label>
+                    </div>
+                </div>
+
+                <!-- MAIN FILTER -->
+
+                <div class="panel">
+                    <h2>Main Filter</h2>
+                    <div class="panel-divider"></div>
+                    <div class="group">
+                        <div class="label-row">
+                            <label>Type</label>
+                        </div>
+                        <div class="radio-row">
+                            <label><input type="radio" name="mainFilterType" value="lowpass" checked> Low-pass</label>
+                            <label><input type="radio" name="mainFilterType" value="highpass"> High-pass</label>
+                            <label><input type="radio" name="mainFilterType" value="bandpass"> Band-pass</label>
+                        </div>
+                    </div>
+                    
+                    <div class="group">
+                        <div class="label-row">
+                            <label>Cutoff (Hz)</label>
+                            <span class="value" id="mainFilterCutoffValue">1000</span>
+                        </div>
+                        <input type="range" id="mainFilterCutoff" min="20" max="20000" step="1" value="1000">
+                    </div>
+                    
+                    <div class="group">
+                        <div class="label-row">
+                            <label>Resonance</label>
+                            <span class="value" id="mainFilterResonanceValue">0.2</span>
+                        </div>
+                        <input type="range" id="mainFilterResonance" min="0" max="1" step="0.01" value="0.2">
+                    </div>
+                    
+                    <div class="group">
+                        <div class="label-row">
+                            <label>Env Amount</label>
+                            <span class="value" id="mainFilterEnvAmountValue">0.5</span>
+                        </div>
+                        <input type="range" id="mainFilterEnvAmount" min="-1" max="1" step="0.01" value="0.5">
+                    </div>
+                    
+                    <div class="group">
+                        <div class="label-row">
+                            <label>Filter Envelope</label>
+                        </div>
+                        <div class="group">
+                            <div class="label-row">
+                                <label>Attack (s)</label>
+                                <span class="value" id="mainFilterAttackValue">0.01</span>
+                            </div>
+                            <input type="range" id="mainFilterAttack" min="0.001" max="2" step="0.001" value="0.01">
+                        </div>
+                        
+                        <div class="group">
+                            <div class="label-row">
+                                <label>Decay (s)</label>
+                                <span class="value" id="mainFilterDecayValue">0.2</span>
+                            </div>
+                            <input type="range" id="mainFilterDecay" min="0.001" max="3" step="0.001" value="0.2">
+                        </div>
+                        
+                        <div class="group">
+                            <div class="label-row">
+                                <label>Sustain</label>
+                                <span class="value" id="mainFilterSustainValue">0.5</span>
+                            </div>
+                            <input type="range" id="mainFilterSustain" min="0" max="1" step="0.01" value="0.5">
+                        </div>
+                        
+                        <div class="group">
+                            <div class="label-row">
+                                <label>Release (s)</label>
+                                <span class="value" id="mainFilterReleaseValue">0.3</span>
+                            </div>
+                            <input type="range" id="mainFilterRelease" min="0.001" max="3" step="0.001" value="0.3">
+                        </div>
+                    </div>
+                    
+                    <div class="checkbox-row">
+                        <label><input type="checkbox" id="mainFilterEnabled" checked> Enable Main Filter</label>
+                    </div>
+
+                </div>
+                    
+                    <!-- AMPLITUDE ENVELOPE -->
+
+                    <div class="panel">
+                        <h2>Amplitude Envelope</h2>
+                    <div class="panel-divider"></div>                
+                    <label class="group">
+                        <div class="label-row">
+                            Attack (s)
+                            <span class="value" id="attackValue">0.005</span>
+                        </div>
+                        <input type="range" id="attack" min="0.001" max="0.2" step="0.001" value="0.005">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Decay (s)
+                            <span class="value" id="decayValue">0.25</span>
+                        </div>
+                        <input type="range" id="decay" min="0.01" max="1.0" step="0.01" value="0.25">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Sustain Level
+                            <span class="value" id="sustainValue">0.4</span>
+                        </div>
+                        <input type="range" id="sustain" min="0" max="1" step="0.01" value="0.4">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Release (s)
+                            <span class="value" id="releaseValue">0.9</span>
+                        </div>
+                        <input type="range" id="release" min="0.05" max="5.0" step="0.05" value="0.9">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Overall Tail (s)
+                            <span class="value" id="tailValue">1.2</span>
+                        </div>
+                        <input type="range" id="tail" min="0.2" max="5.0" step="0.1" value="1.2">
+                    </label>
+
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="clickSafe" checked>
+                        <label for="clickSafe">Prevent clicks (soft start/end)</label>
+                    </div>
+                </div>
+
+                <!-- PITCH ENVELOPE -->
+
+                <div class="panel" id="pitchPanel">
+                    <h2>Pitch Envelope</h2>
+                    <div class="panel-divider"></div>
+                    <label class="group">
+                        <div class="label-row">
+                            <span id="pitchStartLabel">Start Pitch (Hz)</span>
+                            <span class="value" id="pitchStartValue">800</span>
+                        </div>
+
+                        <input type="range" id="pitchStart" min="50" max="6000" value="800">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            <span id="pitchEndLabel">End Pitch (Hz)</span>
+                            <span class="value" id="pitchEndValue">2000</span>
+                        </div>
+
+                        <input type="range" id="pitchEnd" min="50" max="6000" value="2000">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Sweep Time (s)
+                            <span class="value" id="pitchTimeValue">0.15</span>
+                        </div>
+                        <input type="range" id="pitchTime" min="0.01" max="5.0" step="0.01" value="0.15">
+                    </label>
+
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="pitchExpo" checked>
+                        <label for="pitchExpo">Exponential Sweep</label>
+                    </div>
+
+                    <div class="radio-row" role="radiogroup" aria-label="Pitch envelope mode">
+                        <span style="font-size:12px;opacity:0.8;">Mode:</span>
+                        <input type="radio" id="pitchModeAbsolute" name="pitchMode" value="absolute">
+                        <label for="pitchModeAbsolute">Absolute (Hz)</label>
+
+                        <input type="radio" id="pitchModeRelative" name="pitchMode" value="relative" checked>
+                        <label for="pitchModeRelative">Relative (ratio)</label>
+                    </div>
+
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="pitchEnvEnable">
+                        <label for="pitchEnvEnable">Enable pitch envelope</label>
+                    </div>
+                </div>
+
+                <!-- FM OPERATOR -->
+
+                <div class="panel" id="fmPanel">
+                    <h2>FM Operator (Modulator)</h2>
+                    <div class="panel-divider"></div>
+                    <div class="group">
+                        <div class="label-row">
+                            Waveform
+                        </div>
+                        <div class="radio-row" role="radiogroup" aria-label="FM waveform">
+                            <input type="radio" id="fmWaveSine" name="fmWave" value="sine" checked>
+                            <label for="fmWaveSine">Sine</label>
+
+                            <input type="radio" id="fmWaveTriangle" name="fmWave" value="triangle">
+                            <label for="fmWaveTriangle">Triangle</label>
+
+                            <input type="radio" id="fmWaveSquare" name="fmWave" value="square">
+                            <label for="fmWaveSquare">Square</label>
+                        </div>
+                    </div>
+
+                    <div class="group">
+                        <div class="label-row">
+                            Frequency Mode
+                        </div>
+                        <div class="radio-row" role="radiogroup" aria-label="FM frequency mode">
+                            <input type="radio" id="fmModeRatio" name="fmMode" value="ratio" checked>
+                            <label for="fmModeRatio">Ratio</label>
+
+                            <input type="radio" id="fmModeFree" name="fmMode" value="free">
+                            <label for="fmModeFree">Free</label>
+                        </div>
+                    </div>
+
+                    <label class="group" id="fmRatioGroup">
+                        <div class="label-row">
+                            Ratio
+                            <span class="value" id="fmRatioValue">2.00</span>
+                        </div>
+                        <input type="range" id="fmRatio" min="0.25" max="8.0" step="0.05" value="2.0">
+                    </label>
+
+                    <label class="group" id="fmFreqGroup">
+                        <div class="label-row">
+                            Modulator Frequency (Hz)
+                            <span class="value" id="fmFreqValue">600</span>
+                        </div>
+                        <input type="range" id="fmFreq" min="20" max="4000" step="1" value="600">
+                    </label>
+
+                    <div class="group">
+                        <div class="label-row">
+                            FM Amount Mode
+                        </div>
+                        <div class="radio-row" role="radiogroup" aria-label="FM amount mode">
+                            <input type="radio" id="fmAmountLinear" name="fmAmountMode" value="linear">
+                            <label for="fmAmountLinear">Linear</label>
+
+                            <input type="radio" id="fmAmountIndex" name="fmAmountMode" value="index" checked>
+                            <label for="fmAmountIndex">DX-7 Index</label>
+                        </div>
+                    </div>
+
+                    <label class="group">
+                        <div class="label-row">
+                            <span id="fmAmountLabel">Modulation Index</span>
+                            <span class="value" id="fmAmountValue">300</span>
+                        </div>
+                        <input type="range" id="fmAmount" min="0" max="1000" step="1" value="300">
+                    </label>
+
+                    <h3 style="font-size:13px;margin:10px 0 6px;opacity:0.85;">Modulator Envelope</h3>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Attack (s)
+                            <span class="value" id="fmAttackValue">0.01</span>
+                        </div>
+                        <input type="range" id="fmAttack" min="0.001" max="1.0" step="0.001" value="0.01">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Decay (s)
+                            <span class="value" id="fmDecayValue">0.25</span>
+                        </div>
+                        <input type="range" id="fmDecay" min="0.01" max="2.0" step="0.01" value="0.25">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Sustain Level
+                            <span class="value" id="fmSustainValue">0.3</span>
+                        </div>
+                        <input type="range" id="fmSustain" min="0" max="1" step="0.01" value="0.3">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Release (s)
+                            <span class="value" id="fmReleaseValue">0.6</span>
+                        </div>
+                        <input type="range" id="fmRelease" min="0.01" max="3.0" step="0.01" value="0.6">
+                    </label>
+
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="fmEnable" checked>
+                        <label for="fmEnable">Enable FM</label>
+                    </div>
+                </div>
+
+                <!-- VIBRATO LFO -->
+
+                <div class="panel" id="vibPanel">
+                    <h2>Vibrato LFO</h2>
+                    <div class="panel-divider"></div>
+                    <div class="group">
+                        <div class="label-row">Waveform</div>
+                        <div class="radio-row" role="radiogroup" aria-label="Vibrato waveform">
+                            <input type="radio" id="vibWaveSine" name="vibWave" value="sine" checked>
+                            <label for="vibWaveSine">Sine</label>
+
+                            <input type="radio" id="vibWaveTriangle" name="vibWave" value="triangle">
+                            <label for="vibWaveTriangle">Triangle</label>
+                        </div>
+                    </div>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Rate (Hz)
+                            <span class="value" id="vibRateValue">5.0</span>
+                        </div>
+                        <input type="range" id="vibRate" min="0.1" max="20" step="0.1" value="5.0">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Depth (cents)
+                            <span class="value" id="vibDepthValue">20</span>
+                        </div>
+                        <input type="range" id="vibDepth" min="0" max="200" step="1" value="20">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Delay (s)
+                            <span class="value" id="vibDelayValue">0.00</span>
+                        </div>
+                        <input type="range" id="vibDelay" min="0" max="2" step="0.01" value="0.00">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Fade-in (s)
+                            <span class="value" id="vibFadeValue">0.20</span>
+                        </div>
+                        <input type="range" id="vibFade" min="0" max="2" step="0.01" value="0.20">
+                    </label>
+
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="vibEnable" checked>
+                        <label for="vibEnable">Enable vibrato</label>
+                    </div>
+                </div>
+
+                <!-- EFFECTS -->
+
+                <div class="panel" id="fxPanel">
+                    <h2>EFFECTS</h2>
+                    <div class="panel-divider"></div>
+                    <label class="group">
+
+                    <label class="group">
+                        <div class="label-row">
+                            Noise Amount
+                            <span class="value" id="postFxNoiseValue">0.18</span>
+                        </div>
+                        <input type="range" id="postFxNoise" min="0" max="0.6" step="0.01" value="0.18">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Reverb Amount
+                            <span class="value" id="postFxReverbAmountValue">0.35</span>
+                        </div>
+                        <input type="range" id="postFxReverbAmount" min="0" max="1" step="0.01" value="0.35">
+                    </label>
+
+                    <label class="group">
+                        <div class="label-row">
+                            Stereo Width
+                            <span class="value" id="postFxWidthValue">0.6</span>
+                        </div>
+                        <input type="range" id="postFxWidth" min="0" max="1" step="0.01" value="0.6">
+                    </label>
+
+                    <!-- SATURATION / DRIVE -->
+                    <div class="group">
+                        <div class="label-row">
+                            <span>Drive</span>
+                            <span class="value" id="fxDriveValue">0.50</span>
+                        </div>
+                        <input type="range" id="fxDrive" min="0" max="1" step="0.01" value="0.5">
+                    </div>
+                    
+
+
+                    
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="postFxEnableNoise" checked>
+                        <label for="postFxEnableNoise">Enable post noise</label>
+                    </div>
+                    
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="postFxEnableReverb" checked>
+                        <label for="postFxEnableReverb">Enable post reverb</label>
+                    </div>
+                    
+                    <div class="group">
+                        <div class="checkbox-row">
+                            <input type="checkbox" id="fxDriveEnable">
+                            <label for="fxDriveEnable">Enable saturation</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- POST FILTER -->
+
+                <div class="panel" id="postFilterPanel">
+                    <h2>Post Filter</h2>
+                    <div class="post-filter-type">
+                        <label><input type="radio" name="postFilterType" value="peaking" checked> Peaking</label>
+                        <label><input type="radio" name="postFilterType" value="lowshelf"> Low Shelf</label>
+                        <label><input type="radio" name="postFilterType" value="highshelf"> High Shelf</label>
+                        <label><input type="radio" name="postFilterType" value="bandpass"> Bandpass</label>
+                    </div>
+
+                    <div id="postFilterControls"></div>
+
+                    <!-- We will add content here in the next steps -->
+
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="postFilterEnabled" checked>
+                        <label for="postFilterEnabled">Enable post-filter</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="js/main.js"></script>
+
+    </body>
+</html>
