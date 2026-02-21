@@ -12,6 +12,16 @@ export function checked(id) {
     return document.getElementById(id).checked;
 }
 
+export function setValue(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+}
+
+export function setChecked(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.checked = value;
+}
+
 export function bindValueLabel(id, labelId, transform = v => v) {
     const el = document.getElementById(id);
     const label = document.getElementById(labelId);

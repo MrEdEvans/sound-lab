@@ -1,43 +1,26 @@
+// ------------------------------------------------------------
+// PRESETS (import so they are available to UI bindings)
+// ------------------------------------------------------------
+import {
+    loadPreset, presetBrightChime
+} from "./presets.js";
 
-import { loadBrightChimePreset, randomizeSettings, loadMarioJumpPreset, loadMarioCoinPreset } from "./presets.js";
-import { playSoundFromUI, clearCurrentNodes } from "./audio-engine.js";
-
-import "./ui/ui-helpers.js";
-import "./ui/ui-state.js";
+// ------------------------------------------------------------
+// UI EVENT BINDINGS (attaches all listeners automatically)
+// ------------------------------------------------------------
 import "./ui/ui-bindings.js";
 
+// ------------------------------------------------------------
+// AUDIO UNLOCK
+// ------------------------------------------------------------
+import { resumeAudio } from "./audio-engine.js";
 
+document.addEventListener("click", () => {
+    resumeAudio();
+}, { once: true });
 
-/* Buttons */
-document.getElementById("playBtn").addEventListener("click", () => {
-    playSoundFromUI();
-});
+// ------------------------------------------------------------
+// INITIALIZE DEFAULT PRESET
+// ------------------------------------------------------------
+loadPreset("BrightChime");
 
-document.getElementById("stopBtn").addEventListener("click", () => {
-    clearCurrentNodes();
-});
-
-document.getElementById("randomBtn").addEventListener("click", () => {
-    randomizeSettings();
-    playSoundFromUI();
-});
-
-document.getElementById("brightChimeBtn").addEventListener("click", () => {
-    loadBrightChimePreset();
-    playSoundFromUI();
-});
-
-document.getElementById("marioJumpBtn").addEventListener("click", () => {
-    loadMarioJumpPreset();
-    playSoundFromUI();
-});
-
-
-document.getElementById("marioCoinBtn").addEventListener("click", () => {
-    loadMarioCoinPreset();
-    playSoundFromUI();
-});
-
-
-/* Initialize */
-loadBrightChimePreset();

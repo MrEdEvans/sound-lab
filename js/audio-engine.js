@@ -1,220 +1,372 @@
-import { val, checked } from "./ui/ui-helpers.js";
+// ============================================================
+//  AUDIO ENGINE CORE — PURE DSP, STATE-DRIVEN
+// ============================================================
 
+import { engineState } from "./engine-state.js";
 
+import {
+    getAudioCtx,
+    clearCurrentNodes,
+    createImpulseResponse,
+    currentNodes
+} from "./audio-core.js";
 
-let audioCtx = null;
-let currentNodes = [];
-
-let fxDriveEnabled = false;
-let fxDrive = 0.5;
-
-let postFilterType = "peaking";
-let postFilterFreq = 2000;
-let postFilterQ = 1.0;
-let postFilterGain = 0;
-
-function getAudioCtx() {
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+// ------------------------------------------------------------
+// resumeAudio()
+// ------------------------------------------------------------
+export async function resumeAudio() {
+    const ctx = getAudioCtx();
+    if (ctx.state === "suspended") {
+        await ctx.resume();
     }
-    return audioCtx;
 }
 
-export function clearCurrentNodes() {
+// ------------------------------------------------------------
+// createNoiseBuffer()
+// ------------------------------------------------------------
+function createNoiseBuffer(ctx) {
+    const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < data.length; i++) {
+        data[i] = Math.random() * 2 - 1; // white noise
+    }
+
+    return buffer;
+}
+
+// ------------------------------------------------------------
+// stopSound() - Stop all sound immediately
+// ------------------------------------------------------------
+export function stopSound() {
+    // Stop and disconnect all active nodes
     currentNodes.forEach(node => {
-        try { node.disconnect(); } catch(e) {}
-    });
-    currentNodes = [];
-}
-
-/* Simple impulse reverb generator */
-function createImpulseResponse(audio, seconds = 2.5, decay = 2.0) {
-    const rate = audio.sampleRate;
-    const length = rate * seconds;
-    const impulse = audio.createBuffer(2, length, rate);
-    for (let c = 0; c < 2; c++) {
-        const channel = impulse.getChannelData(c);
-        for (let i = 0; i < length; i++) {
-            const n = (length - i) / length;
-            channel[i] = (Math.random() * 2 - 1) * Math.pow(n, decay);
+        try {
+            if (typeof node.stop === "function") {
+                // Stop slightly in the future to avoid DOMException
+                node.stop(audio.currentTime + 0.01);
+            }
+        } catch (e) {
+            // Ignore nodes that can't be stopped
         }
-    }
-    return impulse;
+
+        try {
+            node.disconnect();
+        } catch (e) {
+            // Ignore nodes that can't be disconnected
+        }
+    });
+
+    // Clear the list
+    currentNodes.length = 0;
 }
 
 
-/* Core: build and play one sound */
-export function playSoundFromUI() {
+
+// ------------------------------------------------------------
+// playSoundFromState() — PURE DSP
+// ------------------------------------------------------------
+export function playSoundFromState() {
     const audio = getAudioCtx();
     clearCurrentNodes();
     const now = audio.currentTime;
 
-
-    /* ------------------------------------------------------------
-       DEBUG
-    ------------------------------------------------------------ */
-    console.log("freq:", val("freq"));
-    console.log("detune:", val("detune"));
-    console.log("inharm:", val("inharm"));
-
-    console.log("mainFilterCutoff:", val("mainFilterCutoff"));
-    console.log("mainFilterResonance:", val("mainFilterResonance"));
-
-    console.log("attack:", val("attack"));
-    console.log("decay:", val("decay"));
-    console.log("sustain:", val("sustain"));
-    console.log("release:", val("release"));
-
-    console.log("pitchStart:", val("pitchStart"));
-    console.log("pitchEnd:", val("pitchEnd"));
-    console.log("pitchTime:", val("pitchTime"));
-
-
-    /* ------------------------------------------------------------
-       1. READ UI VALUES
-    ------------------------------------------------------------ */
-    const baseFreq = Number(val("freq"));
-    const detuneAmount = Number(val("detune"));
-    const inharmSpread = Number(val("inharm"));
-    const useSine = checked("oscSine");
-    const useTriangle = checked("oscTriangle");
-    const useSquare = checked("oscSquare");
-    const useSaw = checked("oscSaw");
-    const useInharm = checked("useInharm");
-    const useStereoSpread = checked("stereoSpread");
-
-    const mainFilterEnabled = checked("mainFilterEnabled");
-    const mainFilterType = document.querySelector('input[name="mainFilterType"]:checked').value;
-    const mainFilterCutoff = Number(val("mainFilterCutoff"));
-    const mainFilterResonance = Number(val("mainFilterResonance"));
-    const mainFilterEnvAmount = Number(val("mainFilterEnvAmount"));
-    const mainFilterAttack = Number(val("mainFilterAttack"));
-    const mainFilterDecay = Number(val("mainFilterDecay"));
-    const mainFilterSustain = Number(val("mainFilterSustain"));
-    const mainFilterRelease = Number(val("mainFilterRelease"));
-
-    const attack = Number(val("attack"));
-    const decay = Number(val("decay"));
-    const sustain = Number(val("sustain"));
-    const release = Number(val("release"));
-    const tail = Number(val("tail"));
-    const clickSafe = checked("clickSafe");
-
-    const pitchStart = Number(val("pitchStart"));
-    const pitchEnd = Number(val("pitchEnd"));
-    const pitchTime = Number(val("pitchTime"));
-    const pitchExpo = checked("pitchExpo");
-    const pitchEnvEnable = checked("pitchEnvEnable");
-    const pitchModeRelative = document.getElementById("pitchModeRelative").checked;
-
-    const fmEnabled = checked("fmEnable");
-    const fmModeRatio = document.getElementById("fmModeRatio").checked;
-    const fmWave = document.querySelector('input[name="fmWave"]:checked').value;
-    const fmRatio = Number(val("fmRatio"));
-    const fmFreqFree = Number(val("fmFreq"));
-    const fmAmount = Number(val("fmAmount"));
-    const fmAmountLinear = document.getElementById("fmAmountLinear").checked;
-    const fmAttack = Number(val("fmAttack"));
-    const fmDecay = Number(val("fmDecay"));
-    const fmSustain = Number(val("fmSustain"));
-    const fmRelease = Number(val("fmRelease"));
-
-    const vibEnabled = checked("vibEnable");
-    const vibRate = Number(val("vibRate"));
-    const vibDepthCents = Number(val("vibDepth"));
-    const vibDelay = Number(val("vibDelay"));
-    const vibFade = Math.max(0.001, Number(val("vibFade")));
-    const vibWave = document.querySelector('input[name="vibWave"]:checked').value;
-
-    const postFxReverbAmount = Number(val("postFxReverbAmount"));
-    const postFxEnableReverb = checked("postFxEnableReverb");
-
-    const postFilterEnabled = checked("postFilterEnabled");
-    const postFilterType = document.querySelector('input[name="postFilterType"]:checked').value;
-
-    const freqEl = document.getElementById("postFilterFreq");
-    const qEl = document.getElementById("postFilterQ");
-    const gainEl = document.getElementById("postFilterGain");
-
-    const postFilterFreq = freqEl ? Number(freqEl.value) : 1000;
-    const postFilterQ = qEl ? Number(qEl.value) : 1.0;
-    const postFilterGain = gainEl ? Number(gainEl.value) : 0;
-
-
-
-    /* ------------------------------------------------------------
-       2. MASTER GAIN (ADSR)
-    ------------------------------------------------------------ */
+    // ------------------------------------------------------------
+    // MASTER GAIN (ADSR)
+    // ------------------------------------------------------------
     const master = audio.createGain();
+    const a = engineState.ampEnv.attack;
+    const d = engineState.ampEnv.decay;
+    const s = Math.max(engineState.ampEnv.sustain, 0.0001);
+    const r = engineState.ampEnv.release;
+    const tail = engineState.ampEnv.tail;
+
     master.gain.setValueAtTime(0.0001, now);
-    master.gain.exponentialRampToValueAtTime(1.0, now + attack);
-    master.gain.exponentialRampToValueAtTime(Math.max(sustain, 0.0001), now + attack + decay);
-    master.gain.setValueAtTime(Math.max(sustain, 0.0001), now + tail);
-    master.gain.exponentialRampToValueAtTime(0.0001, now + tail + release);
+    master.gain.exponentialRampToValueAtTime(1.0, now + a);
+    master.gain.exponentialRampToValueAtTime(s, now + a + d);
+    master.gain.setValueAtTime(s, now + tail);
+    master.gain.exponentialRampToValueAtTime(0.0001, now + tail + r);
     master.connect(audio.destination);
     currentNodes.push(master);
 
-    /* ------------------------------------------------------------
-       3. MAIN FILTER (with bypass)
-    ------------------------------------------------------------ */
+    // ------------------------------------------------------------
+    // MAIN FILTER
+    // ------------------------------------------------------------
     const mainFilterInput = audio.createGain();
     let mainFilterOutput = mainFilterInput;
 
-    if (mainFilterEnabled) {
+    if (engineState.mainFilter.enabled) {
         const mf = audio.createBiquadFilter();
-        mf.type = mainFilterType;
+        mf.type = engineState.mainFilter.type;
 
-        // Base cutoff
-        const base = mainFilterCutoff;
+        const base = engineState.mainFilter.cutoff;
+        const envAmt = engineState.mainFilter.envAmount;
+        const mfEnv = engineState.mainFilter.env;
 
-        // Compute peak frequency safely
-        const peakRaw = base + mainFilterEnvAmount * 3000;
+        const peakRaw = base + envAmt * 3000;
         const peak = Math.min(Math.max(peakRaw, 0), audio.sampleRate / 2);
 
-        // Compute sustain frequency safely
-        const sustainRaw = base + (peak - base) * mainFilterSustain;
+        const sustainRaw = base + (peak - base) * mfEnv.sustain;
         const sustain = Math.min(Math.max(sustainRaw, 0), audio.sampleRate / 2);
 
-        // Set initial value
         mf.frequency.setValueAtTime(base, now);
-
-        // Attack → peak
-        mf.frequency.linearRampToValueAtTime(
-            peak,
-            now + mainFilterAttack
-        );
-
-        // Decay → sustain
+        mf.frequency.linearRampToValueAtTime(peak, now + mfEnv.attack);
         mf.frequency.linearRampToValueAtTime(
             sustain,
-            now + mainFilterAttack + mainFilterDecay
+            now + mfEnv.attack + mfEnv.decay
         );
-
-        // Release → base
         mf.frequency.linearRampToValueAtTime(
             base,
-            now + tail + mainFilterRelease
+            now + tail + mfEnv.release
         );
 
-        // Resonance
-        mf.Q.setValueAtTime(mainFilterResonance, now);
+        mf.Q.setValueAtTime(engineState.mainFilter.resonance, now);
 
         mainFilterInput.connect(mf);
         mainFilterOutput = mf;
         currentNodes.push(mf);
     }
 
-    /* ------------------------------------------------------------
-       4. REVERB (optional)
-    ------------------------------------------------------------ */
+    // ------------------------------------------------------------
+    // POST FX
+    // ------------------------------------------------------------
+    const postOutput = buildPostFX(audio, now, mainFilterOutput, master, mainFilterInput);
+
+    // ------------------------------------------------------------
+    // OSCILLATORS (FM + vibrato inside)
+    // ------------------------------------------------------------
+    buildOscillators(audio, now, mainFilterInput);
+}
+
+
+
+// ------------------------------------------------------------
+// buildOscillators()
+// ------------------------------------------------------------
+export function buildOscillators(audio, now, mainFilterInput) {
+
+    const tail = engineState.ampEnv.tail;
+    const release = engineState.ampEnv.release;
+
+    // ------------------------------------------------------------
+    // FM MODULATOR
+    // ------------------------------------------------------------
+    let fmOsc = null;
+    let fmGain = null;
+
+    if (engineState.fm.enabled && engineState.fm.amount > 0) {
+        fmOsc = audio.createOscillator();
+        fmOsc.type = engineState.fm.waveform;
+
+        fmGain = audio.createGain();
+        const fmEnv = engineState.fm.env;
+
+        fmGain.gain.setValueAtTime(0.0001, now);
+        fmGain.gain.exponentialRampToValueAtTime(1.0, now + fmEnv.attack);
+        fmGain.gain.exponentialRampToValueAtTime(
+            Math.max(fmEnv.sustain, 0.0001),
+            now + fmEnv.attack + fmEnv.decay
+        );
+        fmGain.gain.setValueAtTime(
+            Math.max(fmEnv.sustain, 0.0001),
+            now + tail
+        );
+        fmGain.gain.exponentialRampToValueAtTime(
+            0.0001,
+            now + tail + fmEnv.release
+        );
+
+        fmOsc.connect(fmGain);
+        fmOsc.start(now);
+        fmOsc.stop(now + tail + fmEnv.release + 0.2);
+
+        currentNodes.push(fmOsc, fmGain);
+    }
+
+    // ------------------------------------------------------------
+    // VIBRATO LFO
+    // ------------------------------------------------------------
+    let vibOsc = null;
+    let vibGain = null;
+
+    if (engineState.vibrato.enabled && engineState.vibrato.depth > 0) {
+        vibOsc = audio.createOscillator();
+        vibGain = audio.createGain();
+
+        vibOsc.type = engineState.vibrato.waveform;
+        vibOsc.frequency.setValueAtTime(engineState.vibrato.rate, now);
+        vibGain.gain.setValueAtTime(1, now);
+
+        vibOsc.connect(vibGain);
+        vibOsc.start(now);
+        vibOsc.stop(now + tail + release + 0.5);
+
+        currentNodes.push(vibOsc, vibGain);
+    }
+
+    // ------------------------------------------------------------
+    // CARRIER PARTIALS
+    // ------------------------------------------------------------
+    const oscTypes = [];
+    if (engineState.osc.waves.sine) oscTypes.push("sine");
+    if (engineState.osc.waves.triangle) oscTypes.push("triangle");
+    if (engineState.osc.waves.square) oscTypes.push("square");
+    if (engineState.osc.waves.sawtooth) oscTypes.push("sawtooth");
+    if (oscTypes.length === 0) oscTypes.push("sine");
+
+    const partialRatios = engineState.osc.useInharm
+        ? [1.0, 2.71, 3.99, 5.41]
+        : [1.0, 2.0, 3.0];
+
+    partialRatios.forEach((ratio, index) => {
+        const osc = audio.createOscillator();
+        osc.type = oscTypes[index % oscTypes.length];
+
+        const baseFreq = engineState.osc.freq || 440;
+        const inharmSpread = engineState.osc.inharm;
+        const carrierFreq = baseFreq * (1 + inharmSpread * (ratio - 1));
+
+        osc.frequency.setValueAtTime(Math.max(carrierFreq, 1), now);
+
+        // Pitch Envelope
+        if (engineState.pitchEnv.enabled) {
+
+            const env = engineState.pitchEnv;
+            const base = carrierFreq;
+
+            let startFreq, endFreq;
+
+            if (env.mode === "relative") {
+                // Relative mode: start/end are multipliers
+                startFreq = base * env.start;
+                endFreq   = base * env.end;
+            } else {
+                // Absolute mode: start/end are literal frequencies
+                startFreq = env.start;
+                endFreq   = env.end;
+            }
+
+            // Clamp to safe, sensible ranges
+            const clamp = f => Math.min(Math.max(f, 20), 20000);
+
+            startFreq = clamp(startFreq);
+            endFreq   = clamp(endFreq);
+
+            // Apply envelope
+            osc.frequency.setValueAtTime(startFreq, now);
+
+            if (env.expo) {
+                // Exponential ramp cannot go to or from 0
+                const safeStart = Math.max(startFreq, 1);
+                const safeEnd   = Math.max(endFreq, 1);
+
+                osc.frequency.setValueAtTime(safeStart, now);
+                osc.frequency.exponentialRampToValueAtTime(safeEnd, now + env.time);
+            } else {
+                osc.frequency.linearRampToValueAtTime(endFreq, now + env.time);
+            }
+        }
+
+
+        // Detune
+        const detuneDir = index % 2 === 0 ? 1 : -1;
+        osc.detune.setValueAtTime(detuneDir * engineState.osc.detune * 10, now);
+
+        // Vibrato
+        if (vibGain && engineState.vibrato.depth > 0) {
+            const vibDepthGain = audio.createGain();
+            const depthRatio = Math.pow(2, engineState.vibrato.depth / 1200) - 1;
+            const vibratoDepthHz = carrierFreq * depthRatio;
+
+            vibDepthGain.gain.setValueAtTime(0, now);
+            vibDepthGain.gain.setValueAtTime(0, now + engineState.vibrato.delay);
+            vibDepthGain.gain.linearRampToValueAtTime(
+                vibratoDepthHz,
+                now + engineState.vibrato.delay + engineState.vibrato.fade
+            );
+
+            vibGain.connect(vibDepthGain);
+            vibDepthGain.connect(osc.frequency);
+            currentNodes.push(vibDepthGain);
+        }
+
+        // FM
+        if (engineState.fm.enabled && fmOsc && fmGain && engineState.fm.amount > 0) {
+            const fmDepthGain = audio.createGain();
+            const fmDepth = engineState.fm.amountMode === "linear"
+                ? engineState.fm.amount
+                : (engineState.fm.amount * carrierFreq) / 1000;
+
+            fmDepthGain.gain.setValueAtTime(fmDepth, now);
+
+            if (engineState.fm.mode === "ratio") {
+                fmOsc.frequency.setValueAtTime(carrierFreq * engineState.fm.ratio, now);
+            } else {
+                fmOsc.frequency.setValueAtTime(engineState.fm.freq, now);
+            }
+
+            fmGain.connect(fmDepthGain);
+            fmDepthGain.connect(osc.frequency);
+            currentNodes.push(fmDepthGain);
+        }
+
+        // Stereo Spread
+        let oscOutput = osc;
+        if (engineState.osc.stereoSpread > 0) {
+            const pan = audio.createStereoPanner();
+            const panPos = ((index / (partialRatios.length - 1 || 1)) - 0.5) * 2;
+            pan.pan.setValueAtTime(panPos, now);
+            osc.connect(pan);
+            oscOutput = pan;
+            currentNodes.push(pan);
+        }
+
+        // Per‑oscillator gain
+        const oscGain = audio.createGain();
+        const baseGain = 0.5 / partialRatios.length;
+
+        const clickSafe = engineState.ampEnv.clickSafe;
+        const attack = engineState.ampEnv.attack;
+
+        oscGain.gain.setValueAtTime(clickSafe ? 0.0001 : baseGain, now);
+        oscGain.gain.exponentialRampToValueAtTime(
+            baseGain,
+            now + (clickSafe ? attack : 0.001)
+        );
+        oscGain.gain.exponentialRampToValueAtTime(
+            0.0001,
+            now + tail + release
+        );
+
+        oscOutput.connect(oscGain);
+        oscGain.connect(mainFilterInput);
+
+        osc.start(now);
+        osc.stop(now + tail + release + 0.2);
+
+        currentNodes.push(osc, oscGain);
+    });
+}
+
+
+
+// ------------------------------------------------------------
+// buildPostFX()
+// ------------------------------------------------------------
+export function buildPostFX(audio, now, mainFilterOutput, master, mainFilterInput) {
+
+
     let fxInput = mainFilterOutput;
     let fxOutput = mainFilterOutput;
 
-    if (postFxEnableReverb && postFxReverbAmount > 0.01) {
+    // Reverb
+    if (engineState.fx.reverb.enabled && engineState.fx.reverb.amount > 0.01) {
+        const amount = engineState.fx.reverb.amount;
+
         const dry = audio.createGain();
         const wet = audio.createGain();
-        dry.gain.setValueAtTime(1 - postFxReverbAmount, now);
-        wet.gain.setValueAtTime(postFxReverbAmount, now);
+        dry.gain.setValueAtTime(1 - amount, now);
+        wet.gain.setValueAtTime(amount, now);
 
         const conv = audio.createConvolver();
         conv.buffer = createImpulseResponse(audio, 2.5, 2.5);
@@ -233,20 +385,17 @@ export function playSoundFromUI() {
         currentNodes.push(dry, wet, conv, reverbInput, mix);
     }
 
-    /* ------------------------------------------------------------
-    4a. Drive (optional)
-    ------------------------------------------------------------ */
-    if (fxDriveEnabled) {
+    // Drive
+    if (engineState.fx.drive.enabled && engineState.fx.drive.amount > 0) {
         const shaper = audio.createWaveShaper();
 
         const curveSize = 1024;
         const curve = new Float32Array(curveSize);
 
-        // Drive scaling: 0–1 → 1–11
-        const drive = fxDrive * 10 + 1;
+        const drive = engineState.fx.drive.amount * 10 + 1;
 
         for (let i = 0; i < curveSize; i++) {
-            const x = (i / (curveSize - 1)) * 2 - 1; // -1 to 1
+            const x = (i / (curveSize - 1)) * 2 - 1;
             curve[i] = Math.tanh(drive * x);
         }
 
@@ -255,9 +404,6 @@ export function playSoundFromUI() {
 
         fxOutput.connect(shaper);
 
-        // --------------------------------------------------------
-        // Stronger output gain compensation
-        // --------------------------------------------------------
         const outGain = audio.createGain();
         const compensation = 1 / (drive ** 1.05);
         outGain.gain.setValueAtTime(compensation, now);
@@ -269,29 +415,23 @@ export function playSoundFromUI() {
         currentNodes.push(shaper, outGain);
     }
 
-
-
-
-    /* ------------------------------------------------------------
-    5. POST FILTER (optional)
-    ------------------------------------------------------------ */
+    // Post Filter
     let postOutput = fxOutput;
 
-    if (postFilterEnabled) {
+    if (engineState.postFilter.enabled) {
         const pf = audio.createBiquadFilter();
-        pf.type = postFilterType;
+        pf.type = engineState.postFilter.type;
 
-        // Always set frequency
-        const safeFreq = Number(postFilterFreq);
+        const safeFreq = Number(engineState.postFilter.freq);
         pf.frequency.cancelScheduledValues(now);
         pf.frequency.linearRampToValueAtTime(
             isFinite(safeFreq) ? safeFreq : 1000,
             now + 0.02
         );
 
-        // Q applies to: peaking, bandpass, lowpass, highpass, notch, allpass
-        if (["peaking", "bandpass", "lowpass", "highpass", "notch", "allpass"].includes(postFilterType)) {
-            const safeQ = Number(postFilterQ);
+        if (["peaking", "bandpass", "lowpass", "highpass", "notch", "allpass"]
+            .includes(engineState.postFilter.type)) {
+            const safeQ = Number(engineState.postFilter.Q);
             pf.Q.cancelScheduledValues(now);
             pf.Q.linearRampToValueAtTime(
                 isFinite(safeQ) ? safeQ : 1.0,
@@ -299,9 +439,8 @@ export function playSoundFromUI() {
             );
         }
 
-        // Gain applies to: peaking, lowshelf, highshelf
-        if (["peaking", "lowshelf", "highshelf"].includes(postFilterType)) {
-            const safeGain = Number(postFilterGain);
+        if (["peaking", "lowshelf", "highshelf"].includes(engineState.postFilter.type)) {
+            const safeGain = Number(engineState.postFilter.gain);
             pf.gain.cancelScheduledValues(now);
             pf.gain.linearRampToValueAtTime(
                 isFinite(safeGain) ? safeGain : 0,
@@ -314,159 +453,100 @@ export function playSoundFromUI() {
         currentNodes.push(pf);
     }
 
-postOutput.connect(master);
+    // ------------------------------------------------------------
+    // NOISE (post-FX mix)
+    // ------------------------------------------------------------
+    if (engineState.fx.noise.enabled && engineState.fx.noise.amount > 0) {
+
+        // Create looping noise buffer
+        const noiseBuffer = audio.createBuffer(1, audio.sampleRate * 2, audio.sampleRate);
+        const noiseData = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < noiseData.length; i++) {
+            noiseData[i] = Math.random() * 2 - 1;
+        }
+
+        const noiseSource = audio.createBufferSource();
+        noiseSource.buffer = noiseBuffer;
+        noiseSource.loop = true;
+
+        const noiseGain = audio.createGain();
+        noiseGain.gain.setValueAtTime(engineState.fx.noise.amount * 0.02, now);
+
+        noiseSource.connect(noiseGain);
+        noiseGain.connect(mainFilterInput);
+
+        noiseSource.start(now);
+        noiseSource.stop(now + engineState.ampEnv.tail + engineState.ampEnv.release + 0.5);
+
+        currentNodes.push(noiseSource, noiseGain);
+    }
+
+    // ------------------------------------------------------------
+    // STEREO WIDTH (final stage mid/side processor)
+    // ------------------------------------------------------------
+    if (engineState.fx.width.amount !== 1.0) {
+
+        // Split into L/R
+        const splitter = audio.createChannelSplitter(2);
+        const merger = audio.createChannelMerger(2);
+
+        // Mid = (L + R) / 2
+        const midGain = audio.createGain();
+        midGain.gain.setValueAtTime(0.5, now);
+
+        // Side = (L - R) / 2
+        const sideGainL = audio.createGain();
+        const sideGainR = audio.createGain();
+        sideGainL.gain.setValueAtTime(0.5, now);
+        sideGainR.gain.setValueAtTime(-0.5, now);
+
+        // Width control
+        const widthGain = audio.createGain();
+        widthGain.gain.setValueAtTime(engineState.fx.width.amount, now);
+
+        // Routing:
+        // postOutput → splitter
+        postOutput.connect(splitter);
+
+        // Left channel
+        splitter.connect(midGain, 0);
+        splitter.connect(sideGainL, 0);
+
+        // Right channel
+        splitter.connect(midGain, 1);
+        splitter.connect(sideGainR, 1);
+
+        // Combine side channels
+        sideGainL.connect(widthGain);
+        sideGainR.connect(widthGain);
+
+        // Reconstruct L/R
+        const leftOut = audio.createGain();
+        const rightOut = audio.createGain();
+
+        midGain.connect(leftOut);
+        widthGain.connect(leftOut);
+
+        midGain.connect(rightOut);
+        widthGain.connect(rightOut);
+
+        // Merge back to stereo
+        leftOut.connect(merger, 0, 0);
+        rightOut.connect(merger, 0, 1);
+
+        // Replace postOutput with widened signal
+        postOutput = merger;
+
+        currentNodes.push(
+            splitter, merger,
+            midGain, sideGainL, sideGainR,
+            widthGain, leftOut, rightOut
+        );
+    }
 
 
-    /* ⭐ FINAL CONNECTION — REQUIRED FOR SOUND ⭐ */
+    // Final Routing
     postOutput.connect(master);
 
-
-    /* ------------------------------------------------------------
-       6. FM MODULATOR (optional)
-    ------------------------------------------------------------ */
-    let fmOsc = null;
-    let fmGain = null;
-
-    if (fmEnabled && fmAmount > 0) {
-        fmOsc = audio.createOscillator();
-        fmOsc.type = fmWave;
-
-        fmGain = audio.createGain();
-        fmGain.gain.setValueAtTime(0.0001, now);
-        fmGain.gain.exponentialRampToValueAtTime(1.0, now + fmAttack);
-        fmGain.gain.exponentialRampToValueAtTime(Math.max(fmSustain, 0.0001), now + fmAttack + fmDecay);
-        fmGain.gain.setValueAtTime(Math.max(fmSustain, 0.0001), now + tail);
-        fmGain.gain.exponentialRampToValueAtTime(0.0001, now + tail + fmRelease);
-
-        fmOsc.connect(fmGain);
-        fmOsc.start(now);
-        fmOsc.stop(now + tail + fmRelease + 0.2);
-
-        currentNodes.push(fmOsc, fmGain);
-    }
-
-    /* ------------------------------------------------------------
-       7. VIBRATO LFO (optional)
-    ------------------------------------------------------------ */
-    let vibOsc = null;
-    let vibGain = null;
-
-    if (vibEnabled && vibDepthCents > 0) {
-        vibOsc = audio.createOscillator();
-        vibGain = audio.createGain();
-
-        vibOsc.type = vibWave;
-        vibOsc.frequency.setValueAtTime(vibRate, now);
-        vibGain.gain.setValueAtTime(1, now);
-
-        vibOsc.connect(vibGain);
-        vibOsc.start(now);
-        vibOsc.stop(now + tail + release + 0.5);
-
-        currentNodes.push(vibOsc, vibGain);
-    }
-
-    /* ------------------------------------------------------------
-       8. BUILD CARRIER PARTIALS
-    ------------------------------------------------------------ */
-    const oscTypes = [];
-    if (useSine) oscTypes.push("sine");
-    if (useTriangle) oscTypes.push("triangle");
-    if (useSquare) oscTypes.push("square");
-    if (useSaw) oscTypes.push("sawtooth");
-    if (oscTypes.length === 0) oscTypes.push("sine");
-
-    const partialRatios = useInharm
-        ? [1.0, 2.71, 3.99, 5.41]
-        : [1.0, 2.0, 3.0];
-
-    partialRatios.forEach((ratio, index) => {
-        const osc = audio.createOscillator();
-        osc.type = oscTypes[index % oscTypes.length];
-
-        // const carrierFreq = baseFreq * (1 + inharmSpread * (ratio - 1));
-        const carrierFreq = (baseFreq || 440) * (1 + inharmSpread * (ratio - 1));
-
-        osc.frequency.setValueAtTime(Math.max(carrierFreq, 1), now);
-
-        /* Pitch Envelope */
-        if (pitchEnvEnable) {
-            const start = pitchModeRelative ? carrierFreq : Math.max(pitchStart, 1);
-            const end = pitchModeRelative ? carrierFreq * (pitchEnd / Math.max(pitchStart, 1)) : Math.max(pitchEnd, 1);
-
-            osc.frequency.setValueAtTime(start, now);
-            if (pitchExpo) {
-                osc.frequency.exponentialRampToValueAtTime(end, now + pitchTime);
-            } else {
-                osc.frequency.linearRampToValueAtTime(end, now + pitchTime);
-            }
-        }
-
-        /* Detune */
-        const detuneDir = index % 2 === 0 ? 1 : -1;
-        osc.detune.setValueAtTime(detuneDir * detuneAmount * 10, now);
-
-        /* Vibrato */
-        if (vibGain && vibDepthCents > 0) {
-            const vibDepthGain = audio.createGain();
-            const depthRatio = Math.pow(2, vibDepthCents / 1200) - 1;
-            const vibratoDepthHz = carrierFreq * depthRatio;
-
-            vibDepthGain.gain.setValueAtTime(0, now);
-            vibDepthGain.gain.setValueAtTime(0, now + vibDelay);
-            vibDepthGain.gain.linearRampToValueAtTime(vibratoDepthHz, now + vibDelay + vibFade);
-
-            vibGain.connect(vibDepthGain);
-            vibDepthGain.connect(osc.frequency);
-            currentNodes.push(vibDepthGain);
-        }
-
-        /* FM */
-        if (fmEnabled && fmOsc && fmGain && fmAmount > 0) {
-            const fmDepthGain = audio.createGain();
-            const fmDepth = fmAmountLinear
-                ? fmAmount
-                : (fmAmount * carrierFreq) / 1000;
-
-            fmDepthGain.gain.setValueAtTime(fmDepth, now);
-
-            if (fmModeRatio) {
-                fmOsc.frequency.setValueAtTime(carrierFreq * fmRatio, now);
-            } else {
-                fmOsc.frequency.setValueAtTime(fmFreqFree, now);
-            }
-
-            fmGain.connect(fmDepthGain);
-            fmDepthGain.connect(osc.frequency);
-            currentNodes.push(fmDepthGain);
-        }
-
-        /* Stereo Spread */
-        let oscOutput = osc;
-        if (useStereoSpread) {
-            const pan = audio.createStereoPanner();
-            const panPos = ((index / (partialRatios.length - 1 || 1)) - 0.5) * 2;
-            pan.pan.setValueAtTime(panPos, now);
-            osc.connect(pan);
-            oscOutput = pan;
-            currentNodes.push(pan);
-        }
-
-        /* Per‑oscillator gain */
-        const oscGain = audio.createGain();
-        const baseGain = 0.5 / partialRatios.length;
-
-        oscGain.gain.setValueAtTime(clickSafe ? 0.0001 : baseGain, now);
-        oscGain.gain.exponentialRampToValueAtTime(baseGain, now + (clickSafe ? attack : 0.001));
-        oscGain.gain.exponentialRampToValueAtTime(0.0001, now + tail + release);
-
-        oscOutput.connect(oscGain);
-        oscGain.connect(mainFilterInput);
-
-        osc.start(now);
-        osc.stop(now + tail + release + 0.2);
-
-        currentNodes.push(osc, oscGain);
-    });
+    return postOutput;
 }
-

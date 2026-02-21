@@ -1,43 +1,6 @@
-/* ---------------------------
-   UI STATE UPDATE FUNCTIONS
----------------------------- */
-
 import { checked } from "./ui-helpers.js";
 
-// Post-filter state
-let _postFilterType = "peaking";
-let _postFilterEnabled = false;
-
-// Drive state
-let _fxDriveEnabled = false;
-let _fxDrive = 0;
-
-// Getters
-export const postFilterType = () => _postFilterType;
-export const postFilterEnabled = () => _postFilterEnabled;
-export const fxDriveEnabled = () => _fxDriveEnabled;
-export const fxDrive = () => _fxDrive;
-
-// Setters
-export function setPostFilterType(v) {
-    _postFilterType = v;
-}
-
-export function setPostFilterEnabled(v) {
-    _postFilterEnabled = v;
-}
-
-export function setFxDriveEnabled(v) {
-    _fxDriveEnabled = v;
-}
-
-export function setFxDrive(v) {
-    _fxDrive = v;
-}
-
-
-
-console.log("ui-state.js loaded");
+console.log("ui-logic.js loaded");
 
 /* Pitch Envelope Mode */
 export function updatePitchModeUI() {
@@ -150,33 +113,25 @@ export function renderPostFilterControls(type) {
 
     container.innerHTML = html;
 
-    // Add listeners for the sliders after rendering
-
-    // Frequency
+    // Update labels live
     const freqSlider = document.getElementById("postFilterFreq");
     if (freqSlider) {
         freqSlider.addEventListener("input", e => {
-            postFilterFreq = parseFloat(e.target.value);
-            document.getElementById("postFilterFreqValue").textContent = postFilterFreq;
+            document.getElementById("postFilterFreqValue").textContent = e.target.value;
         });
     }
 
-    // Q
     const qSlider = document.getElementById("postFilterQ");
     if (qSlider) {
         qSlider.addEventListener("input", e => {
-            postFilterQ = parseFloat(e.target.value);
-            document.getElementById("postFilterQValue").textContent = postFilterQ.toFixed(2);
+            document.getElementById("postFilterQValue").textContent = Number(e.target.value).toFixed(2);
         });
     }
 
-    // Gain
     const gainSlider = document.getElementById("postFilterGain");
     if (gainSlider) {
         gainSlider.addEventListener("input", e => {
-            postFilterGain = parseFloat(e.target.value);
-            document.getElementById("postFilterGainValue").textContent = postFilterGain.toFixed(1);
+            document.getElementById("postFilterGainValue").textContent = Number(e.target.value).toFixed(1);
         });
     }
-
 }

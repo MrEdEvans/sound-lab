@@ -3,16 +3,26 @@
 ---------------------------- */
 
 import { bindValueLabel } from "./ui-helpers.js";
-
 import {
     updatePitchModeUI,
     updateFmModeUI,
     updateFmAmountLabel,
     updateMainFilterUI,
     renderPostFilterControls
-} from "./ui-state.js";
+} from "./ui-logic.js";
 
-/* Bind slider labels */
+import { syncStateFromUI, syncUIFromState } from "./ui-state-sync.js";
+import { playSoundFromState, stopSound } from "../audio-engine.js";
+import {
+    randomizeSettings,
+    loadPreset,
+    loadPresetAndPlay
+} from "../presets.js";
+
+/* ---------------------------
+   Slider → label bindings
+---------------------------- */
+
 bindValueLabel("freq", "freqValue");
 bindValueLabel("detune", "detuneValue");
 bindValueLabel("inharm", "inharmValue", v => Number(v).toFixed(2));
@@ -41,21 +51,34 @@ bindValueLabel("vibDepth", "vibDepthValue");
 bindValueLabel("vibDelay", "vibDelayValue", v => Number(v).toFixed(2));
 bindValueLabel("vibFade", "vibFadeValue", v => Number(v).toFixed(2));
 
-bindValueLabel("postFxNoise", "postFxNoiseValue", v => Number(v).toFixed(2));
 bindValueLabel("postFxReverbAmount", "postFxReverbAmountValue", v => Number(v).toFixed(2));
+bindValueLabel("postFxNoise", "postFxNoiseValue", v => Number(v).toFixed(2));
 bindValueLabel("postFxWidth", "postFxWidthValue", v => Number(v).toFixed(2));
+bindValueLabel("fxDrive", "fxDriveValue", v => Number(v).toFixed(2));
 
-/* Pitch mode listeners */
-document.getElementById("pitchModeRelative").addEventListener("change", updatePitchModeUI);
-document.getElementById("pitchModeAbsolute").addEventListener("change", updatePitchModeUI);
 
-/* FM listeners */
-document.getElementById("fmModeRatio").addEventListener("change", updateFmModeUI);
-document.getElementById("fmModeFree").addEventListener("change", updateFmModeUI);
-document.getElementById("fmAmountLinear").addEventListener("change", updateFmAmountLabel);
-document.getElementById("fmAmountIndex").addEventListener("change", updateFmAmountLabel);
 
-/* Main filter listeners */
+/* ---------------------------
+   Mode / UI logic bindings
+---------------------------- */
+
+// Pitch mode
+document.getElementById("pitchModeRelative")
+    .addEventListener("change", updatePitchModeUI);
+document.getElementById("pitchModeAbsolute")
+    .addEventListener("change", updatePitchModeUI);
+
+// FM mode + amount label
+document.getElementById("fmModeRatio")
+    .addEventListener("change", updateFmModeUI);
+document.getElementById("fmModeFree")
+    .addEventListener("change", updateFmModeUI);
+document.getElementById("fmAmountLinear")
+    .addEventListener("change", updateFmAmountLabel);
+document.getElementById("fmAmountIndex")
+    .addEventListener("change", updateFmAmountLabel);
+
+// Main filter sliders
 [
     "mainFilterCutoff",
     "mainFilterResonance",
@@ -68,12 +91,53 @@ document.getElementById("fmAmountIndex").addEventListener("change", updateFmAmou
     document.getElementById(id).addEventListener("input", updateMainFilterUI);
 });
 
-/* Post filter listeners */
+// Post filter type radios
 document.querySelectorAll("input[name='postFilterType']").forEach(radio => {
     radio.addEventListener("change", e => {
         renderPostFilterControls(e.target.value);
     });
 });
+
+/* ---------------------------
+   Buttons: Play / Stop / Presets / Random
+---------------------------- */
+
+document.getElementById("playBtn").addEventListener("click", () => {
+    syncStateFromUI();
+    playSoundFromState();
+});
+
+document.getElementById("stopBtn").addEventListener("click", () => {
+    stopSound(); // hard stop: clear all nodes
+});
+
+document.getElementById("randomBtn").addEventListener("click", () => {
+    randomizeSettings();
+    syncUIFromState();
+    playSoundFromState();
+});
+
+document.getElementById("brightChimeBtn").addEventListener("click", () => {
+    loadPreset("BrightChime");
+    syncUIFromState();
+    playSoundFromState();
+});
+
+document.getElementById("marioJumpBtn").addEventListener("click", () => {
+    loadPreset("MarioJump");
+    syncUIFromState();
+    playSoundFromState();
+});
+
+document.getElementById("marioCoinBtn").addEventListener("click", () => {
+    loadPreset("MarioCoin");
+    syncUIFromState();
+    playSoundFromState();
+});
+
+/* ---------------------------
+   Initial UI setup
+---------------------------- */
 
 window.addEventListener("DOMContentLoaded", () => {
     renderPostFilterControls("peaking");
