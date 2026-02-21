@@ -1,4 +1,4 @@
-import { updatePitchModeUI, updateFmModeUI, updateFmAmountLabel } from "./ui/ui-state.js";
+import { updatePitchModeUI, updateFmModeUI, updateFmAmountLabel, renderPostFilterControls } from "./ui/ui-state.js";
 
 
 /* Bright chime preset */
@@ -95,87 +95,271 @@ export function loadBrightChimePreset() {
 /*         */
 /* PRESETS */
 /*         */
+/* -------------------------------------------------------
+   RANDOMIZATION HELPERS
+------------------------------------------------------- */
 
-/* Randomize settings */
+function rand(min, max) {
+    return min + Math.random() * (max - min);
+}
+
+function randInt(min, max) {
+    return Math.floor(rand(min, max + 1));
+}
+
+function chance(p) {
+    return Math.random() < p;
+}
+
+function choose(arr) {
+    return arr[randInt(0, arr.length - 1)];
+}
+
+function chooseMultiple(arr, count) {
+    const copy = [...arr];
+    const result = [];
+    for (let i = 0; i < count && copy.length > 0; i++) {
+        const idx = randInt(0, copy.length - 1);
+        result.push(copy.splice(idx, 1)[0]);
+    }
+    return result;
+}
+
+function setValue(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+}
+
+function setChecked(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.checked = value;
+}
+
+/* -------------------------------------------------------
+   MAIN RANDOMIZER
+------------------------------------------------------- */
+
 export function randomizeSettings() {
-    document.getElementById("freq").value = 1800 + Math.random() * 2500;
-    document.getElementById("detune").value = 4 + Math.random() * 20;
-    document.getElementById("inharm").value = (0.2 + Math.random() * 0.5).toFixed(2);
 
-    document.getElementById("attack").value = (0.002 + Math.random() * 0.02).toFixed(3);
-    document.getElementById("decay").value = (0.1 + Math.random() * 0.5).toFixed(2);
-    document.getElementById("sustain").value = (0.2 + Math.random() * 0.6).toFixed(2);
-    document.getElementById("release").value = (0.5 + Math.random() * 1.5).toFixed(2);
-    document.getElementById("tail").value = (0.6 + Math.random() * 1.8).toFixed(1);
+    /* ---------------------------------------------
+       1. OSCILLATOR WAVEFORMS + CORE PARAMS
+    --------------------------------------------- */
 
-    document.getElementById("filterFreq").value = 2000 + Math.random() * 4000;
-    document.getElementById("filterQ").value = (8 + Math.random() * 15).toFixed(1);
-    document.getElementById("noise").value = (Math.random() * 0.4).toFixed(2);
-    document.getElementById("reverb").value = (0.2 + Math.random() * 0.6).toFixed(2);
-    document.getElementById("width").value = (0.3 + Math.random() * 0.7).toFixed(2);
+    // Waveform mixer: oscSine, oscTriangle, oscSquare, oscSawtooth
+    const oscWaves = ["Sine", "Triangle", "Square", "Sawtooth"];
+    const chosen = chooseMultiple(oscWaves, randInt(1, 3));
 
-    // Pitch envelope
-    document.getElementById("pitchStart").value = 200 + Math.random() * 2000;
-    document.getElementById("pitchEnd").value = 500 + Math.random() * 3000;
-    document.getElementById("pitchTime").value = (0.05 + Math.random() * 0.3).toFixed(2);
-    document.getElementById("pitchEnvEnable").checked = Math.random() > 0.2;
-    document.getElementById(Math.random() > 0.5 ? "pitchModeRelative" : "pitchModeAbsolute").checked = true;
-
-    // FM settings
-    document.getElementById("fmRatio").value = (0.5 + Math.random() * 4).toFixed(2);
-    document.getElementById("fmFreq").value = 100 + Math.random() * 2000;
-    document.getElementById("fmAmount").value = (50 + Math.random() * 600).toFixed(0);
-    document.getElementById("fmAttack").value = (0.001 + Math.random() * 0.1).toFixed(3);
-    document.getElementById("fmDecay").value = (0.05 + Math.random() * 0.6).toFixed(2);
-    document.getElementById("fmSustain").value = (0.1 + Math.random() * 0.7).toFixed(2);
-    document.getElementById("fmRelease").value = (0.1 + Math.random() * 1.0).toFixed(2);
-
-    ["oscSine","oscTriangle","oscSquare","oscSaw"].forEach(id => {
-        document.getElementById(id).checked = Math.random() > 0.3;
+    oscWaves.forEach(w => {
+        setChecked(`osc${w}`, chosen.includes(w));
     });
 
-    document.getElementById("useInharm").checked = Math.random() > 0.2;
-    document.getElementById("stereoSpread").checked = true;
-    document.getElementById("enableReverb").checked = true;
-    document.getElementById("enableFilter").checked = true;
-    document.getElementById("enableNoise").checked = Math.random() > 0.5;
+    // Inharmonic partials
+    const enableInharm = chance(0.3);
+    setChecked("useInharm", enableInharm);
+    if (enableInharm) {
+        setValue("inharm", rand(0.5, 2.0));
+    } else {
+        setValue("inharm", 1.0);
+    }
 
-    document.getElementById("fmEnable").checked = Math.random() > 0.2;
+    // Core oscillator params
+    setValue("freq", rand(100, 1200));
+    setValue("detune", rand(-20, 20));
 
-    // Random FM modes
-    document.getElementById(Math.random() > 0.5 ? "fmModeRatio" : "fmModeFree").checked = true;
-    document.getElementById(Math.random() > 0.5 ? "fmAmountLinear" : "fmAmountIndex").checked = true;
+    // Stereo spread (slider 0–1)
+    setValue("stereoSpread", rand(0, 1.0));
 
-    // Random FM waveform
-    const fmWaves = ["fmWaveSine","fmWaveTriangle","fmWaveSquare"];
-    document.getElementById(fmWaves[Math.floor(Math.random()*fmWaves.length)]).checked = true;
+    /* ---------------------------------------------
+       2. AMPLITUDE ENVELOPE
+    --------------------------------------------- */
 
-    // Vibrato
-    document.getElementById("vibEnable").checked = Math.random() > 0.2;
-    document.getElementById("vibRate").value = (2 + Math.random() * 8).toFixed(1);
-    document.getElementById("vibDepth").value = Math.floor(Math.random() * 150);
-    document.getElementById("vibDelay").value = (Math.random() * 0.5).toFixed(2);
-    document.getElementById("vibFade").value = (Math.random() * 0.5).toFixed(2);
-    const vibWaves = ["vibWaveSine","vibWaveTriangle"];
-    document.getElementById(vibWaves[Math.floor(Math.random()*vibWaves.length)]).checked = true;
+    setValue("attack", rand(0, 0.05));
+    setValue("decay", rand(0.05, 0.4));
+    setValue("sustain", rand(0, 0.8));
+    setValue("release", rand(0.05, 0.4));
+    setValue("tail", rand(0, 1.0));
 
-    // Refresh labels
-    [
-        "freq","detune","inharm","attack","decay","sustain","release","tail",
-        "filterFreq","filterQ","noise","reverb","width",
-        "pitchStart","pitchEnd","pitchTime",
-        "fmRatio","fmFreq","fmAmount","fmAttack","fmDecay","fmSustain","fmRelease",
-        "vibRate","vibDepth","vibDelay","vibFade"
-    ].forEach(id => {
-        const event = new Event("input");
-        document.getElementById(id).dispatchEvent(event);
-    });
+    /* ---------------------------------------------
+       3. PITCH ENVELOPE (panel usage + mode)
+    --------------------------------------------- */
 
-    document.getElementById("pitchModeRelative").checked = true;
-    updatePitchModeUI();
+    const enablePitchEnv = chance(0.8);
+    setChecked("pitchEnvEnable", enablePitchEnv);
 
-    updateFmModeUI();
-    updateFmAmountLabel();
+    const pitchRelative = document.getElementById("pitchModeRelative")?.checked ?? false;
+
+    if (enablePitchEnv) {
+        if (pitchRelative) {
+            // Ratio mode
+            setValue("pitchStart", rand(0.5, 2.0));
+            setValue("pitchEnd", rand(0.5, 3.0));
+        } else {
+            // Absolute Hz mode
+            setValue("pitchStart", rand(100, 800));
+            setValue("pitchEnd", rand(200, 2000));
+        }
+        setValue("pitchTime", rand(0.02, 0.3));
+    } else {
+        // Neutral pitch envelope
+        setValue("pitchStart", pitchRelative ? 1.0 : 440);
+        setValue("pitchEnd", pitchRelative ? 1.0 : 440);
+        setValue("pitchTime", 0);
+    }
+
+    /* ---------------------------------------------
+       4. FM OPERATOR (panel usage + modes)
+    --------------------------------------------- */
+
+    const enableFM = chance(0.6);
+    setChecked("fmEnable", enableFM);
+
+    // FM waveform (select)
+    const fmWaves = ["sine", "triangle", "square"];
+    setValue("fmWaveform", choose(fmWaves));
+
+    // FM modes
+    const useRatioMode = chance(0.5);
+    setChecked("fmModeRatio", useRatioMode);
+    setChecked("fmModeFree", !useRatioMode);
+
+    const useLinearAmount = chance(0.5);
+    setChecked("fmAmountLinear", useLinearAmount);
+    setChecked("fmAmountIndex", !useLinearAmount);
+
+    if (enableFM) {
+        if (useRatioMode) {
+            setValue("fmRatio", rand(0.25, 4.0));
+            setValue("fmFreq", 440); // base reference
+        } else {
+            setValue("fmFreq", rand(50, 2000));
+            setValue("fmRatio", 1.0);
+        }
+
+        if (useLinearAmount) {
+            setValue("fmAmount", rand(0, 1.0));
+        } else {
+            setValue("fmAmount", rand(0, 5.0));
+        }
+
+        setValue("fmAttack", rand(0, 0.1));
+        setValue("fmDecay", rand(0.05, 0.4));
+        setValue("fmSustain", rand(0, 0.8));
+        setValue("fmRelease", rand(0.05, 0.4));
+    } else {
+        // FM off → neutralize modulation
+        setValue("fmAmount", 0);
+        setValue("fmAttack", 0);
+        setValue("fmDecay", 0);
+        setValue("fmSustain", 0);
+        setValue("fmRelease", 0);
+    }
+
+    /* ---------------------------------------------
+       5. VIBRATO (panel usage + waveform)
+    --------------------------------------------- */
+
+    const enableVib = chance(0.5);
+    setChecked("vibEnable", enableVib);
+
+    const vibWave = choose(["sine", "triangle"]);
+    setValue("vibWaveform", vibWave);
+
+    if (enableVib) {
+        setValue("vibRate", rand(3, 9));
+        setValue("vibDepth", rand(0, 0.5));
+        setValue("vibDelay", rand(0, 0.2));
+        setValue("vibFade", rand(0, 0.3));
+    } else {
+        setValue("vibDepth", 0);
+        setValue("vibRate", 5);
+        setValue("vibDelay", 0);
+        setValue("vibFade", 0);
+    }
+
+    /* ---------------------------------------------
+       6. MAIN FILTER (always used, but musical)
+    --------------------------------------------- */
+
+    setValue("mainFilterCutoff", rand(300, 6000));
+    setValue("mainFilterResonance", rand(0.1, 10));
+    setValue("mainFilterEnvAmount", rand(-1, 1));
+
+    setValue("mainFilterAttack", rand(0, 0.1));
+    setValue("mainFilterDecay", rand(0.05, 0.4));
+    setValue("mainFilterSustain", rand(0, 0.8));
+    setValue("mainFilterRelease", rand(0.05, 0.4));
+
+    /* ---------------------------------------------
+       7. POST FILTER (panel usage + dynamic controls)
+    --------------------------------------------- */
+
+    const enablePostFilter = chance(0.4);
+    setChecked("postFilterEnabled", enablePostFilter);
+
+    if (enablePostFilter) {
+        const type = choose(["peaking", "lowshelf", "highshelf", "bandpass"]);
+        const typeRadio = document.getElementById(`postFilterType_${type}`);
+        if (typeRadio) typeRadio.checked = true;
+
+        // Build dynamic UI for chosen type
+        renderPostFilterControls(type);
+
+        setValue("postFilterFreq", rand(200, 6000));
+
+        if (type === "peaking" || type === "bandpass") {
+            setValue("postFilterQ", rand(0.2, 10));
+        }
+
+        if (type === "peaking" || type === "lowshelf" || type === "highshelf") {
+            setValue("postFilterGain", rand(-6, 6));
+        }
+    } else {
+        // Still ensure UI is in a valid state
+        const defaultType = "peaking";
+        const typeRadio = document.getElementById(`postFilterType_${defaultType}`);
+        if (typeRadio) typeRadio.checked = true;
+        renderPostFilterControls(defaultType);
+        setValue("postFilterFreq", 2000);
+    }
+
+    /* ---------------------------------------------
+       8. POST FX PANELS (noise, reverb, drive)
+    --------------------------------------------- */
+
+    // Noise
+    const enableNoise = chance(0.4);
+    setChecked("postFxEnableNoise", enableNoise);
+    setValue("postFxNoise", enableNoise ? rand(0, 0.5) : 0);
+
+    // Reverb
+    const enableReverb = chance(0.5);
+    setChecked("postFxEnableReverb", enableReverb);
+    setValue("postFxReverbAmount", enableReverb ? rand(0, 0.6) : 0);
+
+    // Drive / saturation
+    const enableDrive = chance(0.4);
+    setChecked("fxDriveEnable", enableDrive);
+    setValue("fxDrive", enableDrive ? rand(0, 1.0) : 0);
+
+    // Width
+    setValue("postFxWidth", rand(0.5, 1.0));
+
+    /* ---------------------------------------------
+       9. FINAL UI UPDATES
+    --------------------------------------------- */
+
+    // These should be imported from your UI modules:
+    // updatePitchModeUI, updateFmModeUI, updateFmAmountLabel, updateMainFilterUI
+
+    if (typeof updatePitchModeUI === "function") updatePitchModeUI();
+    if (typeof updateFmModeUI === "function") updateFmModeUI();
+    if (typeof updateFmAmountLabel === "function") updateFmAmountLabel();
+    if (typeof updateMainFilterUI === "function") updateMainFilterUI();
+
+    if (enablePostFilter) {
+        const selected = document.querySelector("input[name='postFilterType']:checked")?.value;
+        if (selected) renderPostFilterControls(selected);
+    }
 }
 
 

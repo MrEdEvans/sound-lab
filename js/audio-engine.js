@@ -163,21 +163,41 @@ export function playSoundFromUI() {
     if (mainFilterEnabled) {
         const mf = audio.createBiquadFilter();
         mf.type = mainFilterType;
-        mf.frequency.setValueAtTime(mainFilterCutoff, now);
-        mf.Q.setValueAtTime(mainFilterResonance, now);
 
-        const peakFreq = mainFilterCutoff + mainFilterEnvAmount * 3000;
+        // Base cutoff
+        const base = mainFilterCutoff;
 
-        mf.frequency.setValueAtTime(mainFilterCutoff, now);
-        mf.frequency.linearRampToValueAtTime(peakFreq, now + mainFilterAttack);
+        // Compute peak frequency safely
+        const peakRaw = base + mainFilterEnvAmount * 3000;
+        const peak = Math.min(Math.max(peakRaw, 0), audio.sampleRate / 2);
+
+        // Compute sustain frequency safely
+        const sustainRaw = base + (peak - base) * mainFilterSustain;
+        const sustain = Math.min(Math.max(sustainRaw, 0), audio.sampleRate / 2);
+
+        // Set initial value
+        mf.frequency.setValueAtTime(base, now);
+
+        // Attack → peak
         mf.frequency.linearRampToValueAtTime(
-            mainFilterCutoff + (peakFreq - mainFilterCutoff) * mainFilterSustain,
+            peak,
+            now + mainFilterAttack
+        );
+
+        // Decay → sustain
+        mf.frequency.linearRampToValueAtTime(
+            sustain,
             now + mainFilterAttack + mainFilterDecay
         );
+
+        // Release → base
         mf.frequency.linearRampToValueAtTime(
-            mainFilterCutoff,
+            base,
             now + tail + mainFilterRelease
         );
+
+        // Resonance
+        mf.Q.setValueAtTime(mainFilterResonance, now);
 
         mainFilterInput.connect(mf);
         mainFilterOutput = mf;

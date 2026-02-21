@@ -4,6 +4,39 @@
 
 import { checked } from "./ui-helpers.js";
 
+// Post-filter state
+let _postFilterType = "peaking";
+let _postFilterEnabled = false;
+
+// Drive state
+let _fxDriveEnabled = false;
+let _fxDrive = 0;
+
+// Getters
+export const postFilterType = () => _postFilterType;
+export const postFilterEnabled = () => _postFilterEnabled;
+export const fxDriveEnabled = () => _fxDriveEnabled;
+export const fxDrive = () => _fxDrive;
+
+// Setters
+export function setPostFilterType(v) {
+    _postFilterType = v;
+}
+
+export function setPostFilterEnabled(v) {
+    _postFilterEnabled = v;
+}
+
+export function setFxDriveEnabled(v) {
+    _fxDriveEnabled = v;
+}
+
+export function setFxDrive(v) {
+    _fxDrive = v;
+}
+
+
+
 console.log("ui-state.js loaded");
 
 /* Pitch Envelope Mode */
@@ -73,11 +106,12 @@ export function updateMainFilterUI() {
     });
 }
 
-/* Post Filter UI */
+/* Post-filter UI parameter build */
 export function renderPostFilterControls(type) {
     const container = document.getElementById("postFilterControls");
     let html = "";
 
+    // Frequency (always needed)
     html += `
         <div class="group">
             <div class="label-row">
@@ -88,6 +122,7 @@ export function renderPostFilterControls(type) {
         </div>
     `;
 
+    // Q (peaking + bandpass)
     if (type === "peaking" || type === "bandpass") {
         html += `
             <div class="group">
@@ -100,6 +135,7 @@ export function renderPostFilterControls(type) {
         `;
     }
 
+    // Gain (peaking + shelves)
     if (type === "peaking" || type === "lowshelf" || type === "highshelf") {
         html += `
             <div class="group">
@@ -113,4 +149,34 @@ export function renderPostFilterControls(type) {
     }
 
     container.innerHTML = html;
+
+    // Add listeners for the sliders after rendering
+
+    // Frequency
+    const freqSlider = document.getElementById("postFilterFreq");
+    if (freqSlider) {
+        freqSlider.addEventListener("input", e => {
+            postFilterFreq = parseFloat(e.target.value);
+            document.getElementById("postFilterFreqValue").textContent = postFilterFreq;
+        });
+    }
+
+    // Q
+    const qSlider = document.getElementById("postFilterQ");
+    if (qSlider) {
+        qSlider.addEventListener("input", e => {
+            postFilterQ = parseFloat(e.target.value);
+            document.getElementById("postFilterQValue").textContent = postFilterQ.toFixed(2);
+        });
+    }
+
+    // Gain
+    const gainSlider = document.getElementById("postFilterGain");
+    if (gainSlider) {
+        gainSlider.addEventListener("input", e => {
+            postFilterGain = parseFloat(e.target.value);
+            document.getElementById("postFilterGainValue").textContent = postFilterGain.toFixed(1);
+        });
+    }
+
 }

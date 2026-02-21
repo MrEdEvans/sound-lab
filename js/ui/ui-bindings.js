@@ -16,6 +16,7 @@ import {
 bindValueLabel("freq", "freqValue");
 bindValueLabel("detune", "detuneValue");
 bindValueLabel("inharm", "inharmValue", v => Number(v).toFixed(2));
+bindValueLabel("stereoSpread", "stereoSpreadValue", v => Number(v).toFixed(2));
 
 bindValueLabel("attack", "attackValue", v => Number(v).toFixed(3));
 bindValueLabel("decay", "decayValue", v => Number(v).toFixed(2));

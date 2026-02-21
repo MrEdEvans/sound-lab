@@ -63,6 +63,14 @@
                         <input type="range" id="detune" min="0" max="40" value="8">
                     </label>
 
+                    <div class="group">
+                        <div class="label-row">
+                            <span>Stereo Spread</span>
+                            <span class="value" id="stereoSpreadValue">0.0</span>
+                        </div>
+                        <input type="range" id="stereoSpread" min="0" max="1" step="0.01" value="0">
+                    </div>
+
                     <label class="group">
                         <div class="label-row">
                             Inharmonic Spread
@@ -90,10 +98,6 @@
                     <div class="checkbox-row">
                         <input type="checkbox" id="useInharm" checked>
                         <label for="useInharm">Use inharmonic partials</label>
-                    </div>
-                    <div class="checkbox-row">
-                        <input type="checkbox" id="stereoSpread" checked>
-                        <label for="stereoSpread">Stereo spread</label>
                     </div>
                 </div>
 
