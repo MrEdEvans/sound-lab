@@ -1,3 +1,9 @@
+console.log("Diagnostics loaded");
+
+
+import "./diagnostics.js";
+
+
 // ------------------------------------------------------------
 // PRESETS (import so they are available to UI bindings)
 // ------------------------------------------------------------

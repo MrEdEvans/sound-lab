@@ -136,6 +136,17 @@ export function playSoundFromState() {
     // OSCILLATORS (FM + vibrato inside)
     // ------------------------------------------------------------
     buildOscillators(audio, now, mainFilterInput);
+    
+    // Update audio graph debug panel
+    if (typeof updateAudioGraphPanel === "function") {
+        console.log("About to call updateAudioGraphPanel()");
+        updateAudioGraphPanel(mainFilterInput);
+    }
+    else
+        console.log("Don't call updateAudioGraphPanel()");
+    
+    console.log("MASTER NODE:", master);
+    console.log("MASTER CONNECTIONS:", master._connections);
 }
 
 
