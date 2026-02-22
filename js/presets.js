@@ -366,6 +366,12 @@ export function randomizeSettings() {
     // Helper functions
     const rand = (min, max) => min + Math.random() * (max - min);
     const choose = arr => arr[Math.floor(Math.random() * arr.length)];
+    const randLog = (min, max) => {
+        const logMin = Math.log(min);
+        const logMax = Math.log(max);
+        return Math.exp(logMin + Math.random() * (logMax - logMin));
+    };
+
 
     // ------------------------------------------------------------
     // OSCILLATOR
@@ -381,7 +387,7 @@ export function randomizeSettings() {
         sawtooth: chosen.includes("sawtooth")
     };
 
-    engineState.osc.freq = rand(120, 2000);          // Safe, musical range
+    engineState.osc.freq = randLog(120, 2000);       // Safe, musical range
     engineState.osc.detune = rand(-15, 15);          // Small, usable detune
     engineState.osc.useInharm = Math.random() < 0.3;
     engineState.osc.inharm = engineState.osc.useInharm ? rand(0.7, 1.4) : 1.0;
@@ -406,8 +412,8 @@ export function randomizeSettings() {
         engineState.pitchEnv.start = rand(0.5, 1.5);   // multipliers
         engineState.pitchEnv.end   = rand(0.5, 2.0);
     } else {
-        engineState.pitchEnv.start = rand(200, 2000);  // Hz
-        engineState.pitchEnv.end   = rand(200, 3000);
+        engineState.pitchEnv.start = randLog(200, 2000);  // Hz
+        engineState.pitchEnv.end   = randLog(200, 3000);
     }
 
     engineState.pitchEnv.time = rand(0.02, 0.25);
@@ -463,7 +469,7 @@ export function randomizeSettings() {
     // ------------------------------------------------------------
     engineState.mainFilter.enabled = Math.random() < 0.9;
     engineState.mainFilter.type = "lowpass";
-    engineState.mainFilter.cutoff = rand(200, 6000);
+    engineState.mainFilter.cutoff = randLog(200, 6000);
     engineState.mainFilter.resonance = rand(0.1, 8);
     engineState.mainFilter.envAmount = rand(-0.5, 1.0);
 
