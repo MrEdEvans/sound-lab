@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>SoundLab Preset & Engine State Test</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+    textarea { width: 100%; height: 200px; font-family: monospace; }
+    pre { background: #f7f7f7; padding: 10px; white-space: pre-wrap; border: 1px solid #ddd; }
+    .error { color: #b00; font-weight: bold; }
+    .section { margin-top: 30px; }
+    button { padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+
+<h1>SoundLab Preset & Engine State Test</h1>
+
+<p>Paste a preset JSON below and click <strong>Run Tests</strong>.</p>
+
+<textarea id="presetInput">
+{
+  "name": "Test Preset",
+  "author": "Ed",
+  "engineVersion": "1.0.0",
+  "presetFormatVersion": "1",
+  "osc": { "frequency": 880 },
+  "filter": { "cutoff": 500 }
+}
+</textarea>
+
+<br><br>
+<button id="runTestsBtn">Run Tests</button>
+
+<div id="output"></div>
+
+<script type="module">
+  // Adjust these paths to match your project structure
+  import { validatePreset } from "../src/engine/presets/validatePreset.js";
+  import { loadPreset } from "../src/engine/presets/loadPreset.js";
+  import { savePreset } from "../src/engine/presets/savePreset.js";
+
+  // Attach handler inside module scope
+  document.getElementById("runTestsBtn").addEventListener("click", runTests);
+
+  async function runTests() {
+    const out = document.getElementById("output");
+    out.innerHTML = "";
+
+    let preset;
+    try {
+      preset = JSON.parse(document.getElementById("presetInput").value);
+    } catch (e) {
+      out.innerHTML = `<p class="error">Invalid JSON: ${e.message}</p>`;
+      return;
+    }
+
+    // VALIDATION
+    const errors = validatePreset(preset);
+    if (errors.length > 0) {
+      out.innerHTML += `
+        <div class="section">
+          <h2>Validation Errors</h2>
+          <pre class="error">${errors.join("\n")}</pre>
+        </div>`;
+      return;
+    }
+
+    out.innerHTML += `
+      <div class="section">
+        <h2>Validation</h2>
+        <p>No errors.</p>
+      </div>
+    `;
+
+    // LOAD PRESET
+    let loaded;
+    try {
+      loaded = await loadPreset(preset);
+    } catch (e) {
+      out.innerHTML += `
+        <div class="section">
+          <h2>Load Error</h2>
+          <pre class="error">${e.message}</pre>
+        </div>`;
+      return;
+    }
+
+    out.innerHTML += `
+      <div class="section">
+        <h2>Metadata</h2>
+        <pre>${JSON.stringify(loaded.metadata, null, 2)}</pre>
+      </div>
+    `;
+
+    out.innerHTML += `
+      <div class="section">
+        <h2>Engine State</h2>
+        <pre>${JSON.stringify(loaded.engineState, null, 2)}</pre>
+      </div>
+    `;
+
+    // ROUND TRIP SAVE
+    const roundTrip = await savePreset(loaded.engineState, loaded.metadata, true);
+
+    out.innerHTML += `
+      <div class="section">
+        <h2>Round‑Trip Saved Preset</h2>
+        <pre>${roundTrip}</pre>
+      </div>
+    `;
+
+    // --- Helper: stable JSON stringify (sorts keys recursively) ---
+    function stableStringify(obj, space = 2) {
+      return JSON.stringify(sortKeys(obj), null, space);
+    }
+
+    function sortKeys(value) {
+      if (Array.isArray(value)) {
+        return value.map(sortKeys);
+      }
+      if (value && typeof value === "object") {
+        return Object.keys(value)
+          .sort()
+          .reduce((acc, key) => {
+            acc[key] = sortKeys(value[key]);
+            return acc;
+          }, {});
+      }
+      return value;
+    }
+
+    // --- DIFF ---
+    const originalSorted = stableStringify(preset, 2);
+    const roundTripSorted = stableStringify(JSON.parse(roundTrip), 2);
+
+    const diff = diffStrings(originalSorted, roundTripSorted);
+
+    out.innerHTML += `
+      <div class="section">
+        <h2>Round‑Trip Diff</h2>
+        <pre>${diff}</pre>
+      </div>
+    `;
+
+    // --- Simple line-by-line diff ---
+    function diffStrings(a, b) {
+      const aLines = a.split("\n");
+      const bLines = b.split("\n");
+      const max = Math.max(aLines.length, bLines.length);
+      let out = "";
+
+      for (let i = 0; i < max; i++) {
+        if (aLines[i] !== bLines[i]) {
+          out += `- ${aLines[i] || ""}\n+ ${bLines[i] || ""}\n\n`;
+        }
+      }
+
+      return out || "No differences. ✔️";
+    }
+  }
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,44 @@
+{
+  "modules": {
+    "osc": {
+      "waveform": "sine",
+      "frequency": 440,
+      "detune": 0,
+      "phase": 0
+    },
+    "filter": {
+      "type": "lowpass",
+      "cutoff": 1200,
+      "resonance": 0.5,
+      "drive": 0
+    },
+    "envelope": {
+      "attack": 0.01,
+      "decay": 0.2,
+      "sustain": 0.8,
+      "release": 0.5
+    },
+    "vibrato": {
+      "rate": 5,
+      "depth": 0.1,
+      "enabled": false
+    },
+    "fx": {
+      "delayTime": 0.25,
+      "feedback": 0.3,
+      "mix": 0.2
+    },
+    "master": {
+      "gain": 0.8
+    }
+  },
+  "routing": {
+    "oscToFilter": true,
+    "filterToFx": true,
+    "fxToMaster": true
+  },
+  "global": {
+    "tuning": 440,
+    "glide": 0
+  }
+}

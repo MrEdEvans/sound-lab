@@ -1,0 +1,20 @@
+// src/engine/setters/moduleSetters.js
+import { setParam } from "./setParam.js";
+
+export const oscSetters = {
+  enabled: (s, v) => setParam(s, "osc.enabled", v),
+  frequency: (s, v) => setParam(s, "osc.frequency", v),
+  detune: (s, v) => setParam(s, "osc.detune", v),
+  inharmonicity: (s, v) => setParam(s, "osc.inharmonicity", v),
+  useInharmonicity: (s, v) => setParam(s, "osc.useInharmonicity", v),
+  stereoSpread: (s, v) => setParam(s, "osc.stereoSpread", v),
+
+  waves: {
+    sine: (s, v) => setParam(s, "osc.waves.sine", v),
+    triangle: (s, v) => setParam(s, "osc.waves.triangle", v),
+    square: (s, v) => setParam(s, "osc.waves.square", v),
+    saw: (s, v) => setParam(s, "osc.waves.saw", v)
+  }
+};
+
+// Repeat for fm, vibrato, pitchEnv, ampEnv, voiceFilter, globalFilter, fx, routing, global…

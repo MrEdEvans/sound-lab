@@ -1,10 +1,23 @@
 <!-- markdownlint-disable MD024 -->
-
 # SoundLab Engine State Specification
 
-The engine state is the authoritative, in‑memory representation of the synthesizer’s current configuration. It defines all module parameters, routing information, and global settings. This document formalizes the structure, types, ranges, defaults, and versioning rules that govern the engine state.
+The engine state is the authoritative, in‑memory representation of SoundLab’s synthesizer configuration. It defines all DSP module parameters, routing, and global settings. The preset system, UI bindings, DSP layer, and routing model all depend on this specification.
 
-The preset system, UI bindings, DSP layer, and routing model all depend on this specification.
+This document describes the engine state structure, module definitions, validation rules, versioning, and how the engine state interacts with the preset system.
+
+---
+
+## Purpose of the Engine State
+
+The engine state is a complete, deterministic DSP configuration. It contains only sound‑producing parameters and routing information. It does not contain metadata such as preset name, author, tags, or timestamps.
+
+The engine state is produced by:
+
+1. Loading versioned defaults for the preset’s engine version.
+2. Merging preset deltas into those defaults.
+3. Validating the resulting structure.
+
+This ensures presets always load and sound identical across versions.
 
 ---
 
@@ -22,26 +35,37 @@ engineState = {
 ```
 
 ### version
-
-A semantic version string representing the engine state schema version. This is used for preset compatibility and migration.
+A semantic version string representing the engine state schema version. This is used for preset compatibility and versioned defaults.
 
 ### modules
-
-A collection of functional blocks (oscillator, filter, envelope, vibrato, FX, master). Each module contains its own parameters, defaults, and constraints.
+A collection of DSP modules (oscillator, filter, envelope, vibrato, FX, master). Each module defines its own parameters, defaults, and constraints.
 
 ### routing
-
 A structured representation of how modules connect in the signal path.
 
 ### global
+Engine‑wide settings such as tuning and glide.
 
-Engine‑wide settings such as master gain, tuning, or future global modulation sources.
+---
+
+## Interaction with the Preset System
+
+The engine state is tightly integrated with the preset system:
+
+- Presets store only deltas, not full engine state.
+- The loader merges deltas into versioned defaults to produce a complete engine state.
+- The saver extracts deltas by comparing engine state to versioned defaults.
+- Metadata is kept separate and never enters the engine state.
+
+This separation keeps the DSP engine pure and predictable.
 
 ---
 
 ## Module Definitions
 
-Each module is a functional block in the synthesizer. Modules are independent, deterministic, and do not mutate each other directly. All communication occurs through engine state and routing.
+Each module is a functional DSP block. Modules are deterministic and do not mutate each other directly. All communication occurs through engine state and routing.
+
+---
 
 ### Oscillator Module
 
@@ -54,17 +78,15 @@ modules.osc = {
 };
 ```
 
-#### Defaults
+**Defaults**
+- waveform: "sine"
+- frequency: 440
+- detune: 0
+- phase: 0
 
-- waveform: `"sine"`
-- frequency: `440`
-- detune: `0`
-- phase: `0`
-
-#### Validation
-
+**Validation**
 - waveform must be one of the allowed strings.
-- frequency must be a positive number.
+- frequency must be positive.
 - detune must be within ±1200 cents.
 - phase must be between 0 and 2π.
 
@@ -81,15 +103,13 @@ modules.filter = {
 };
 ```
 
-#### Defaults
+**Defaults**
+- type: "lowpass"
+- cutoff: 1200
+- resonance: 0.5
+- drive: 0
 
-- type: `"lowpass"`
-- cutoff: `1200`
-- resonance: `0.5`
-- drive: `0`
-
-#### Validation
-
+**Validation**
 - type must be one of the allowed strings.
 - cutoff must be between 20 and 20000 Hz.
 - resonance must be between 0 and 1.
@@ -108,16 +128,14 @@ modules.envelope = {
 };
 ```
 
-#### Defaults
+**Defaults**
+- attack: 0.01
+- decay: 0.2
+- sustain: 0.8
+- release: 0.5
 
-- attack: `0.01`
-- decay: `0.2`
-- sustain: `0.8`
-- release: `0.5`
-
-#### Validation
-
-- attack, decay, release must be non‑negative numbers.
+**Validation**
+- attack, decay, release must be non‑negative.
 - sustain must be between 0 and 1.
 
 ---
@@ -132,21 +150,19 @@ modules.vibrato = {
 };
 ```
 
-#### Defaults
+**Defaults**
+- rate: 5
+- depth: 0.1
+- enabled: false
 
-- rate: `5`
-- depth: `0.1`
-- enabled: `false`
-
-#### Validation
-
+**Validation**
 - rate must be positive.
 - depth must be between 0 and 1.
 - enabled must be boolean.
 
 ---
 
-### FX Module (Version 1: Simple Delay)
+### FX Module (Simple Delay, Version 1)
 
 ```js
 modules.fx = {
@@ -156,14 +172,12 @@ modules.fx = {
 };
 ```
 
-#### Defaults
+**Defaults**
+- delayTime: 0.25
+- feedback: 0.3
+- mix: 0.2
 
-- delayTime: `0.25`
-- feedback: `0.3`
-- mix: `0.2`
-
-#### Validation
-
+**Validation**
 - delayTime must be >= 0.
 - feedback must be between 0 and 1.
 - mix must be between 0 and 1.
@@ -178,12 +192,10 @@ modules.master = {
 };
 ```
 
-#### Defaults
+**Defaults**
+- gain: 0.8
 
-- gain: `0.8`
-
-#### Validation
-
+**Validation**
 - gain must be between 0 and 1.
 
 ---
@@ -200,14 +212,14 @@ routing = {
 };
 ```
 
-### Rules
-
+**Rules**
 - All routing fields are boolean.
 - All routing fields must be present.
-- Future versions may replace this with:
-  - reorderable FX chain
-  - modulation matrix
-  - node‑based graph
+
+**Future versions may introduce:**
+- reorderable FX chains
+- modulation matrix
+- node‑based graph routing
 
 ---
 
@@ -222,13 +234,11 @@ global = {
 };
 ```
 
-### Defaults
+**Defaults**
+- tuning: 440
+- glide: 0
 
-- tuning: `440`
-- glide: `0`
-
-### Validation
-
+**Validation**
 - tuning must be positive.
 - glide must be non‑negative.
 
@@ -268,14 +278,12 @@ const defaultEngineState = {
 All engine state updates must be validated.
 
 ### Setters
-
 - Validate type, range, and allowed values.
 - Reject invalid updates.
 - Provide meaningful error messages.
 - Never mutate state on invalid input.
 
 ### Preset Loading
-
 - Validate the entire preset before applying.
 - Reject missing modules or fields.
 - Reject invalid parameter values.
@@ -300,10 +308,9 @@ Errors must include:
 ```
 
 This format is used by:
-
 - setters
 - preset loader
-- future schema validators
+- schema validators
 
 ---
 
@@ -312,7 +319,6 @@ This format is used by:
 The engine state includes a `version` field.
 
 ### Rules
-
 - Increment minor version for additive changes.
 - Increment major version for breaking changes.
 - Preset loader must:
@@ -320,23 +326,25 @@ The engine state includes a `version` field.
   - migrate if possible
   - reject if incompatible
 
+Versioned defaults ensure backward compatibility without requiring preset migrations.
+
 ---
 
 ## Future Expansion
 
 This specification will grow to include:
 
-- Polyphonic voice state (Version 2)
-- Voice allocation rules
-- Modulation matrix (Version 3)
-- Node‑based routing graph
-- Wavetable or sample oscillator parameters
+- polyphonic voice state
+- voice allocation rules
+- modulation matrix
+- node‑based routing graph
+- wavetable or sample oscillator parameters
 - FX chain architecture
-- Per‑module metadata
+- per‑module metadata
 - UI layout hints
 
 ---
 
 ## Summary
 
-The engine state is the backbone of SoundLab. By defining its structure, defaults, validation rules, and versioning up front, the engine remains predictable, maintainable, and extensible as the project evolves.
+The engine state is the backbone of SoundLab. By defining its structure, defaults, validation rules, and versioning up front—and by integrating it cleanly with the preset system—SoundLab remains predictable, maintainable, and extensible as the project evolves.
