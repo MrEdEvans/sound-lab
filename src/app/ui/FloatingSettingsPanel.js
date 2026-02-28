@@ -1,5 +1,7 @@
-import { getSettings, updateSetting } from "../settings/settingsPanelAPI.js";
-import SettingsPanel from "../settings/SettingsPanel.js";
+import { getSettings, updateSetting } from "../../ui/settings/settingsPanelAPI.js";
+
+import SettingsPanel from "../../ui/settings/SettingsPanel.js";
+
 
 export default class FloatingSettingsPanel {
   constructor(root = document.body) {
