@@ -31,6 +31,21 @@
 
 <br><br>
 <button id="runTestsBtn">Run Tests</button>
+<br><br>
+
+<button id="savePresetBtn">Save to Storage</button>
+<select id="presetList"></select>
+<button id="loadPresetBtn">Load Selected</button>
+<button id="deletePresetBtn">Delete Selected</button>
+
+<br><br>
+
+<button id="exportPresetBtn">Export JSON</button>
+<input type="file" id="importPresetInput" accept=".json" style="display:none;">
+<button id="importPresetBtn">Import JSON</button>
+
+<br><br>
+
 
 <div id="output"></div>
 
@@ -39,9 +54,23 @@
   import { validatePreset } from "../src/engine/presets/validatePreset.js";
   import { loadPreset } from "../src/engine/presets/loadPreset.js";
   import { savePreset } from "../src/engine/presets/savePreset.js";
+  import { PresetStore } from "../src/engine/presets/PresetStore.js";
+
 
   // Attach handler inside module scope
   document.getElementById("runTestsBtn").addEventListener("click", runTests);
+  document.getElementById("savePresetBtn").addEventListener("click", saveToStorage);
+  document.getElementById("loadPresetBtn").addEventListener("click", loadFromStorage);
+  document.getElementById("deletePresetBtn").addEventListener("click", deleteFromStorage);
+  document.getElementById("exportPresetBtn").addEventListener("click", exportPreset);
+  document.getElementById("importPresetBtn").addEventListener("click", () => {
+  document.getElementById("importPresetInput").click();
+    });
+  document.getElementById("importPresetInput").addEventListener("change", importPreset);
+
+
+updatePresetList();
+
 
   async function runTests() {
     const out = document.getElementById("output");
@@ -159,6 +188,115 @@
       return out || "No differences. ✔️";
     }
   }
+
+
+
+  async function saveToStorage() {
+  let preset;
+  try {
+    preset = JSON.parse(document.getElementById("presetInput").value);
+  } catch (e) {
+    alert("Invalid JSON: " + e.message);
+    return;
+  }
+
+  const errors = validatePreset(preset);
+  if (errors.length > 0) {
+    alert("Preset is invalid:\n" + errors.join("\n"));
+    return;
+  }
+
+  const loaded = await loadPreset(preset);
+
+  const id = loaded.metadata.uuid || crypto.randomUUID();
+  loaded.metadata.uuid = id;
+
+  await PresetStore.save(id, loaded.engineState, loaded.metadata);
+
+  alert("Preset saved.");
+  updatePresetList();
+}
+
+async function loadFromStorage() {
+  const id = document.getElementById("presetList").value;
+  if (!id) return;
+
+  const result = await PresetStore.load(id);
+  if (!result) {
+    alert("Preset not found.");
+    return;
+  }
+
+  const { metadata, engineState } = result;
+
+  const json = await savePreset(engineState, metadata, true);
+  document.getElementById("presetInput").value = json;
+
+  alert("Preset loaded into editor.");
+}
+
+async function deleteFromStorage() {
+  const id = document.getElementById("presetList").value;
+  if (!id) return;
+
+  await PresetStore.delete(id);
+  alert("Preset deleted.");
+  updatePresetList();
+}
+
+async function updatePresetList() {
+  const list = document.getElementById("presetList");
+  list.innerHTML = "";
+
+  const presets = await PresetStore.list();
+
+  presets.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = `${p.name} (${p.id})`;
+    list.appendChild(opt);
+  });
+}
+
+
+async function exportPreset() {
+  let preset;
+  try {
+    preset = JSON.parse(document.getElementById("presetInput").value);
+  } catch (e) {
+    alert("Invalid JSON: " + e.message);
+    return;
+  }
+
+  const blob = new Blob([JSON.stringify(preset, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${preset.name || "preset"}.json`;
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+
+async function importPreset(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const text = await file.text();
+
+  try {
+    const preset = JSON.parse(text);
+    document.getElementById("presetInput").value = JSON.stringify(preset, null, 2);
+    alert("Preset imported into editor.");
+  } catch (e) {
+    alert("Invalid preset file: " + e.message);
+  }
+
+  event.target.value = ""; // reset file input
+}
+
 
 </script>
 
