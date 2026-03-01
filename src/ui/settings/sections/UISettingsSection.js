@@ -1,9 +1,6 @@
 // src/ui/settings/sections/UISettingsSection.js
 
 import { updateSetting } from "../settingsPanelAPI.js";
-import Toggle from "../components/Toggle.js";
-import Dropdown from "../components/Dropdown.js";
-import Slider from "../components/Slider.js";
 
 export default class UISettingsSection {
   constructor(settings) {
@@ -11,45 +8,50 @@ export default class UISettingsSection {
   }
 
   render() {
-    const container = document.createElement("div");
-    container.className = "settings-section";
+    const el = document.createElement("div");
+    el.className = "settings-section";
 
-    // Theme
-    container.appendChild(
-      new Dropdown("Theme", this.settings.ui.theme, ["light", "dark", "system"], value => {
-        updateSetting("ui.theme", value);
-      }).render()
-    );
+    const title = document.createElement("h2");
+    title.textContent = "UI Settings";
 
-    // UI Scale
-    container.appendChild(
-      new Slider("UI Scale", this.settings.ui.uiScale, 0.5, 2.0, 0.1, value => {
-        updateSetting("ui.uiScale", value);
-      }).render()
-    );
+    // Theme dropdown
+    const themeLabel = document.createElement("label");
+    themeLabel.textContent = "Theme:";
 
-    // Wave Visualization Style
-    container.appendChild(
-      new Dropdown(
-        "Waveform Style",
-        this.settings.ui.waveVisualization.style,
-        ["default", "minimal", "bars", "line"],
-        value => updateSetting("ui.waveVisualization.style", value)
-      ).render()
-    );
+    const themeSelect = document.createElement("select");
+    ["dark", "light", "system"].forEach(option => {
+      const opt = document.createElement("option");
+      opt.value = option;
+      opt.textContent = option;
+      if (this.settings.ui.theme === option) opt.selected = true;
+      themeSelect.appendChild(opt);
+    });
 
-    // Waveform Smoothing
-    container.appendChild(
-      new Slider(
-        "Waveform Smoothing",
-        this.settings.ui.waveVisualization.smoothing,
-        0,
-        1,
-        0.01,
-        value => updateSetting("ui.waveVisualization.smoothing", value)
-      ).render()
-    );
+    themeSelect.addEventListener("change", () => {
+      updateSetting("ui.theme", themeSelect.value);
+    });
 
-    return container;
+    // UI Scale slider
+    const scaleLabel = document.createElement("label");
+    scaleLabel.textContent = "UI Scale:";
+
+    const scaleSlider = document.createElement("input");
+    scaleSlider.type = "range";
+    scaleSlider.min = 0.5;
+    scaleSlider.max = 2.0;
+    scaleSlider.step = 0.1;
+    scaleSlider.value = this.settings.ui.uiScale;
+
+    scaleSlider.addEventListener("input", () => {
+      updateSetting("ui.uiScale", parseFloat(scaleSlider.value));
+    });
+
+    el.appendChild(title);
+    el.appendChild(themeLabel);
+    el.appendChild(themeSelect);
+    el.appendChild(scaleLabel);
+    el.appendChild(scaleSlider);
+
+    return el;
   }
 }

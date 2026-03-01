@@ -1,3 +1,5 @@
+// indexe.js
+
 import ActionBar from "./ActionBar.js";
 import FloatingSettingsPanel from "./FloatingSettingsPanel.js";
 

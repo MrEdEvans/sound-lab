@@ -1,20 +1,20 @@
-import { getSettings, updateSetting } from "../../ui/settings/settingsPanelAPI.js";
+// src/ui/settings/FloatingSettingsPanel.js
 
 import SettingsPanel from "../../ui/settings/SettingsPanel.js";
+// Only if you read settings here:
+import { getSettings, updateSetting } from "../../ui/settings/settingsPanelAPI.js";
 
 
 export default class FloatingSettingsPanel {
   constructor(root = document.body) {
     this.root = root;
     this.visible = false;
-
     this.panelEl = null;
     this.backdropEl = null;
-    this.contentEl = null;
+    this.settingsPanel = null;
 
     this.dragging = false;
     this.resizing = false;
-
     this.dragOffset = { x: 0, y: 0 };
     this.resizeStart = { x: 0, y: 0, width: 0, height: 0 };
 
@@ -22,43 +22,71 @@ export default class FloatingSettingsPanel {
     this.onMouseUp = this.handleMouseUp.bind(this);
   }
 
-  toggle() {
-    this.visible ? this.close() : this.open();
-  }
+  // -------------------------------------------------------------
+  // Public API
+  // -------------------------------------------------------------
 
-  open() {
+  async open() {
+
+    console.log( "FloatingSettingsPanel.open() called. getSettings():", getSettings() );
+
     if (this.visible) return;
     this.visible = true;
 
-    const settings = getSettings();
+    const settings = getSettings() || {};
+
+    console.log( "settings: ", settings );
+
     const sp = settings.ui.settingsPanel;
 
-    if (sp.backdrop) this.createBackdrop();
+    this.createBackdrop(sp.backdrop);
     this.createPanel(sp);
 
-    const settingsPanel = new SettingsPanel(this.contentEl);
-    settingsPanel.init();
+    this.settingsPanel = new SettingsPanel(this.panelContentEl);
+    await this.settingsPanel.init();
   }
 
   close() {
     if (!this.visible) return;
     this.visible = false;
 
-    if (this.panelEl) this.panelEl.remove();
-    if (this.backdropEl) this.backdropEl.remove();
+    if (this.settingsPanel) {
+      this.settingsPanel.destroy?.();
+      this.settingsPanel = null;
+    }
 
-    this.panelEl = null;
-    this.backdropEl = null;
+    if (this.panelEl) {
+      this.panelEl.remove();
+      this.panelEl = null;
+    }
+
+    if (this.backdropEl) {
+      this.backdropEl.remove();
+      this.backdropEl = null;
+    }
 
     document.removeEventListener("mousemove", this.onMouseMove);
     document.removeEventListener("mouseup", this.onMouseUp);
   }
 
-  createBackdrop() {
+  toggle() {
+    if (this.visible) this.close();
+    else this.open();
+  }
+
+  // -------------------------------------------------------------
+  // DOM creation
+  // -------------------------------------------------------------
+
+  createBackdrop(enabled) {
+    if (!enabled) return;
+
     const backdrop = document.createElement("div");
     backdrop.className = "settings-backdrop";
     backdrop.addEventListener("click", () => this.close());
-    this.root.appendChild(backdrop);
+
+    document.body.appendChild(backdrop);
+
     this.backdropEl = backdrop;
   }
 
@@ -89,19 +117,20 @@ export default class FloatingSettingsPanel {
     panel.appendChild(content);
     panel.appendChild(resizeHandle);
 
-    const { x, y, width, height } = this.restoreRect(sp);
+    // Position & size
+    const { x, y, width, height } = this.getInitialRect(sp);
     panel.style.left = `${x}px`;
     panel.style.top = `${y}px`;
     panel.style.width = `${width}px`;
     panel.style.height = `${height}px`;
 
-    this.root.appendChild(panel);
+    document.body.appendChild(panel);
 
     this.panelEl = panel;
-    this.contentEl = content;
+    this.panelContentEl = content;
   }
 
-  restoreRect(sp) {
+  getInitialRect(sp) {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
@@ -111,13 +140,12 @@ export default class FloatingSettingsPanel {
     const x = Math.min(sp.defaultX || 120, vw - width - 20);
     const y = Math.min(sp.defaultY || 80, vh - height - 20);
 
-    return {
-      x: Math.max(20, x),
-      y: Math.max(20, y),
-      width,
-      height
-    };
+    return { x: Math.max(20, x), y: Math.max(20, y), width, height };
   }
+
+  // -------------------------------------------------------------
+  // Dragging
+  // -------------------------------------------------------------
 
   startDrag(e) {
     e.preventDefault();
@@ -125,7 +153,6 @@ export default class FloatingSettingsPanel {
 
     this.dragging = true;
     const rect = this.panelEl.getBoundingClientRect();
-
     this.dragOffset.x = e.clientX - rect.left;
     this.dragOffset.y = e.clientY - rect.top;
 
@@ -133,45 +160,34 @@ export default class FloatingSettingsPanel {
     document.addEventListener("mouseup", this.onMouseUp);
   }
 
-  startResize(e) {
-    e.preventDefault();
-    if (!this.panelEl) return;
-
-    this.resizing = true;
-    const rect = this.panelEl.getBoundingClientRect();
-
-    this.resizeStart = {
-      x: e.clientX,
-      y: e.clientY,
-      width: rect.width,
-      height: rect.height
-    };
-
-    document.addEventListener("mousemove", this.onMouseMove);
-    document.addEventListener("mouseup", this.onMouseUp);
-  }
-
   handleMouseMove(e) {
-    if (this.dragging) this.updatePosition(e);
-    else if (this.resizing) this.updateSize(e);
+    if (this.dragging) {
+      this.updatePosition(e);
+    } else if (this.resizing) {
+      this.updateSize(e);
+    }
   }
 
   handleMouseUp() {
-    if (this.dragging || this.resizing) {
+    if (this.dragging) {
+      this.dragging = false;
       this.persistRect();
     }
-
-    this.dragging = false;
-    this.resizing = false;
+    if (this.resizing) {
+      this.resizing = false;
+      this.persistRect();
+    }
 
     document.removeEventListener("mousemove", this.onMouseMove);
     document.removeEventListener("mouseup", this.onMouseUp);
   }
 
   updatePosition(e) {
-    const rect = this.panelEl.getBoundingClientRect();
+    if (!this.panelEl) return;
+
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    const rect = this.panelEl.getBoundingClientRect();
 
     let x = e.clientX - this.dragOffset.x;
     let y = e.clientY - this.dragOffset.y;
@@ -183,7 +199,30 @@ export default class FloatingSettingsPanel {
     this.panelEl.style.top = `${y}px`;
   }
 
+  // -------------------------------------------------------------
+  // Resizing
+  // -------------------------------------------------------------
+
+  startResize(e) {
+    e.preventDefault();
+    if (!this.panelEl) return;
+
+    this.resizing = true;
+    const rect = this.panelEl.getBoundingClientRect();
+    this.resizeStart = {
+      x: e.clientX,
+      y: e.clientY,
+      width: rect.width,
+      height: rect.height
+    };
+
+    document.addEventListener("mousemove", this.onMouseMove);
+    document.addEventListener("mouseup", this.onMouseUp);
+  }
+
   updateSize(e) {
+    if (!this.panelEl) return;
+
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
@@ -197,28 +236,41 @@ export default class FloatingSettingsPanel {
     this.panelEl.style.height = `${height}px`;
   }
 
+  // -------------------------------------------------------------
+  // Persistence
+  // -------------------------------------------------------------
+
   persistRect() {
+    if (!this.panelEl) return;
+
     const rect = this.panelEl.getBoundingClientRect();
     const settings = getSettings();
     const sp = settings.ui.settingsPanel;
 
     const patch = {
-      defaultX: rect.left,
-      defaultY: rect.top,
-      width: rect.width,
-      height: rect.height
+      ui: {
+        settingsPanel: {
+          defaultX: rect.left,
+          defaultY: rect.top,
+          width: rect.width,
+          height: rect.height
+        }
+      }
     };
 
+    // Respect rememberPosition / rememberSize flags
     if (!sp.rememberPosition) {
-      delete patch.defaultX;
-      delete patch.defaultY;
+      delete patch.ui.settingsPanel.defaultX;
+      delete patch.ui.settingsPanel.defaultY;
     }
-
     if (!sp.rememberSize) {
-      delete patch.width;
-      delete patch.height;
+      delete patch.ui.settingsPanel.width;
+      delete patch.ui.settingsPanel.height;
     }
 
-    updateSetting("ui.settingsPanel", { ...sp, ...patch });
+    updateSetting("ui.settingsPanel", {
+      ...sp,
+      ...patch.ui.settingsPanel
+    });
   }
 }

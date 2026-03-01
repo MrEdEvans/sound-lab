@@ -1,5 +1,5 @@
 /* -------------------------------------------------------------
-   Layout container
+   Layout container (non-floating settings panel)
 ------------------------------------------------------------- */
 
 .settings-panel {
@@ -120,7 +120,16 @@
   margin-bottom: 0;
 }
 
+/* -------------------------------------------------------------
+   Floating Settings Panel (clean + merged)
+------------------------------------------------------------- */
 
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 999;
+}
 
 .floating-settings-panel {
   position: fixed;
@@ -128,18 +137,30 @@
   border: 1px solid #333;
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  z-index: 1000;
+
+  /* layout */
   display: flex;
   flex-direction: column;
-  z-index: 1000;
   overflow: hidden;
+
+  /* JS sets left/top/width/height */
+  padding: 0;
+}
+
+.floating-settings-panel > * {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .floating-settings-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 12px;
   background: #242424;
+  border-bottom: 1px solid #333;
   cursor: move;
   user-select: none;
   font-size: 0.9rem;
@@ -154,9 +175,9 @@
 }
 
 .floating-settings-content {
-  flex: 1;
+  flex: 1 1 auto;
   overflow: auto;
-  padding: 8px 12px 12px;
+  padding: 12px;
 }
 
 .floating-settings-resize {
@@ -169,10 +190,29 @@
   background: linear-gradient(135deg, transparent 50%, #555 50%);
 }
 
-.settings-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.35);
-  z-index: 999;
+/* -------------------------------------------------------------
+   Wave Visualization Section
+------------------------------------------------------------- */
+
+.settings-section.wave-visualization input[type="color"] {
+  padding: 0;
+  height: 36px;
+  cursor: pointer;
 }
 
+.settings-section.wave-visualization input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #5a8cff;
+  cursor: pointer;
+}
+
+.settings-section.wave-visualization input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #5a8cff;
+  cursor: pointer;
+}
