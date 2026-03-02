@@ -14,10 +14,20 @@ export async function initSettingsPanelAPI() {
 
   currentSettings = await SettingsStore.load();
 
+  // Notify listeners that settings were loaded from disk
+  notifyListeners({
+    type: "settingsLoaded",
+    settings: currentSettings
+  });
+
   // Subscribe to store updates so UI stays in sync
   SettingsStore.subscribe(updated => {
     currentSettings = updated;
-    notifyListeners(updated);
+
+    notifyListeners({
+      type: "settingsUpdated",
+      settings: updated
+    });
   });
 
   return currentSettings;
@@ -52,11 +62,10 @@ export function subscribe(fn) {
 // Internal helpers
 // -------------------------------------------------------------
 
-
-function notifyListeners(settings) {
+function notifyListeners(event) {
   for (const fn of listeners) {
     try {
-      fn(settings);
+      fn(event);
     } catch (err) {
       console.error("SettingsPanelAPI subscriber error:", err);
     }

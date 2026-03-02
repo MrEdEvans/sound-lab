@@ -12,6 +12,61 @@ async function init() {
 
   // 3. Now UI can safely read settings
   initUI();
+
+
+
+
+
+
+
+
+
+
+
+const events = [
+  "pointerdown", "pointermove", "pointerup", "pointercancel",
+  "mousedown", "mousemove", "mouseup",
+  "touchstart", "touchmove", "touchend",
+  "click", "wheel", "scroll", "dragstart", "selectstart"
+];
+
+events.forEach(ev => {
+  document.addEventListener(ev, e => {
+    console.log(
+      `%c[GLOBAL ${ev}]`,
+      "color:#0af;font-weight:bold;",
+      {
+        target: e.target.tagName,
+        class: e.target.className,
+        pointerId: e.pointerId,
+        buttons: e.buttons,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        time: performance.now().toFixed(1)
+      }
+    );
+  }, { capture: true });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 init();
