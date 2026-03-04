@@ -1,7 +1,7 @@
 // src/ui/settings/FloatingSettingsPanel.js
 
 import SettingsPanel from "../../ui/settings/UISettingsPanel.js";
-import { getSettings, updateSetting } from "../../ui/settings/uiSettingsPanelAPI.js";
+import { getSettings, updateSetting } from "../../ui/settings/settingsPanelAPI.js";
 
 export default class FloatingSettingsPanel {
   constructor(root = document.body) {

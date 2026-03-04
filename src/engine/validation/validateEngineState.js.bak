@@ -1,5 +1,5 @@
 // src/engine/validation/validateEngineState.js
-import { engineSpec } from "../spec/engineSpec.js";
+import { engineSpec } from "../spec/index.js";
 import { validateModule } from "./validateModule.js";
 
 export function validateEngineState(state) {

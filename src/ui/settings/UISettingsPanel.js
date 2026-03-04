@@ -1,15 +1,16 @@
+// src/ui/settings/SettingsPanel.js
+
 import {
   initSettingsPanelAPI,
   getSettings,
   subscribe
-} from "./settingsPanelAPI.js";
+} from "./uiSettingsPanelAPI.js";
 
 import UISettingsSection from "./sections/UISettingsSection.js";
 import WorkflowSettingsSection from "./sections/WorkflowSettingsSection.js";
 import EngineSettingsSection from "./sections/EngineSettingsSection.js";
 import MIDISettingsSection from "./sections/MIDISettingsSection.js";
 import DiagnosticsSettingsSection from "./sections/DiagnosticsSettingsSection.js";
-
 import WaveVisualizationSettingsSection from "./sections/WaveVisualizationSettingsSection.js";
 
 export default class SettingsPanel {
@@ -22,9 +23,15 @@ export default class SettingsPanel {
   async init() {
     this.settings = await initSettingsPanelAPI();
 
-    this.unsubscribe = subscribe(updated => {
-      this.settings = updated;
-      this.render();
+    // 🔥 PATCH: Only re-render on explicit events
+    this.unsubscribe = subscribe(event => {
+      if (event.type === "settingsLoaded" || event.type === "settingsReset") {
+        this.settings = event.settings;
+        this.render();
+      } else {
+        // For normal updates (sliders, toggles), just update internal state
+        this.settings = event.settings;
+      }
     });
 
     this.render();
@@ -41,8 +48,6 @@ export default class SettingsPanel {
       new DiagnosticsSettingsSection(this.settings),
       new WorkflowSettingsSection(this.settings)
     ];
-
-
 
     for (const section of sections) {
       this.root.appendChild(section.render());

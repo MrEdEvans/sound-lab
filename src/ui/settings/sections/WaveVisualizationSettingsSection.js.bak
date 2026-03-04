@@ -1,4 +1,4 @@
-import { updateSetting } from "../uiSettingsPanelAPI.js";
+import { updateSetting } from "../settingsPanelAPI.js";
 
 export default class WaveVisualizationSettingsSection {
   constructor(settings) {

@@ -1,6 +1,6 @@
 import initUI from "./ui/uiBootstrap.js";
 import { SettingsStore } from "../engine/settings/EngineSettingsStore.js";
-import { initSettingsPanelAPI } from "../ui/settings/uiSettingsPanelAPI.js";
+import { initSettingsPanelAPI } from "../ui/settings/settingsPanelAPI.js";
 
 async function init() {
   // 1. Load engine settings

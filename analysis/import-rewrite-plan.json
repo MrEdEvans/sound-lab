@@ -1,0 +1,102 @@
+[
+  {
+    "file": "app/main.js",
+    "old": "./ui/index.js",
+    "new": "./ui/uiBootstrap.js"
+  },
+  {
+    "file": "app/main.js",
+    "old": "../engine/settings/SettingsStore.js",
+    "new": "../engine/settings/EngineSettingsStore.js"
+  },
+  {
+    "file": "app/main.js",
+    "old": "../ui/settings/settingsPanelAPI.js",
+    "new": "../ui/settings/uiSettingsPanelAPI.js"
+  },
+  {
+    "file": "app/ui/FloatingSettingsPanel.js",
+    "old": "../../ui/settings/SettingsPanel.js",
+    "new": "../../ui/settings/UISettingsPanel.js"
+  },
+  {
+    "file": "app/ui/FloatingSettingsPanel.js",
+    "old": "../../ui/settings/settingsPanelAPI.js",
+    "new": "../../ui/settings/uiSettingsPanelAPI.js"
+  },
+  {
+    "file": "engine/presets/loadPreset.js",
+    "old": "../state/loadVersionedDefaults.js",
+    "new": "../state/loadVersionedEngineDefaults.js"
+  },
+  {
+    "file": "engine/presets/savePreset.js",
+    "old": "../state/loadVersionedDefaults.js",
+    "new": "../state/loadVersionedEngineDefaults.js"
+  },
+  {
+    "file": "engine/presets/validatePreset.js",
+    "old": "../state/loadVersionedDefaults.js",
+    "new": "../state/loadVersionedEngineDefaults.js"
+  },
+  {
+    "file": "engine/setters/setParms.js",
+    "old": "../spec/index.js",
+    "new": "../spec/engineSpec.js"
+  },
+  {
+    "file": "engine/settings/loadSettings.js",
+    "old": "./defaultSettings.js",
+    "new": "./defaultEngineSettings.js"
+  },
+  {
+    "file": "engine/settings/SettingsStore.js",
+    "old": "./defaultSettings.js",
+    "new": "./defaultEngineSettings.js"
+  },
+  {
+    "file": "engine/settings/SettingsStore.js",
+    "old": "./validateSettings.js",
+    "new": "./validateEngineSettings.js"
+  },
+  {
+    "file": "engine/state/generateDefaultState.js",
+    "old": "../spec/index.js",
+    "new": "../spec/engineSpec.js"
+  },
+  {
+    "file": "engine/validation/validateEngineState.js",
+    "old": "../spec/index.js",
+    "new": "../spec/engineSpec.js"
+  },
+  {
+    "file": "ui/settings/sections/DiagnosticsSettingsSection.js",
+    "old": "../settingsPanelAPI.js",
+    "new": "../uiSettingsPanelAPI.js"
+  },
+  {
+    "file": "ui/settings/sections/EngineSettingsSection.js",
+    "old": "../settingsPanelAPI.js",
+    "new": "../uiSettingsPanelAPI.js"
+  },
+  {
+    "file": "ui/settings/sections/UISettingsSection.js",
+    "old": "../settingsPanelAPI.js",
+    "new": "../uiSettingsPanelAPI.js"
+  },
+  {
+    "file": "ui/settings/sections/WaveVisualizationSettingsSection.js",
+    "old": "../settingsPanelAPI.js",
+    "new": "../uiSettingsPanelAPI.js"
+  },
+  {
+    "file": "ui/settings/SettingsPanel.js",
+    "old": "./settingsPanelAPI.js",
+    "new": "./uiSettingsPanelAPI.js"
+  },
+  {
+    "file": "ui/settings/settingsPanelAPI.js",
+    "old": "../../engine/settings/SettingsStore.js",
+    "new": "../../engine/settings/EngineSettingsStore.js"
+  }
+]

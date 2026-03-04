@@ -1,7 +1,7 @@
 // src/engine/settings/SettingsStore.js
 
-import { defaultSettings } from "./defaultSettings.js";
-import { validateSettings } from "./validateSettings.js";
+import { defaultSettings } from "./defaultEngineSettings.js";
+import { validateSettings } from "./validateEngineSettings.js";
 
 const DB_NAME = "soundlab-settings";
 const STORE_NAME = "globalSettings";
@@ -27,10 +27,19 @@ export const SettingsStore = {
     }
 
     cachedSettings = merged;
+
+    // 🔥 NEW: notify listeners that settings were loaded from disk
+    notifySubscribers({
+      type: "settingsLoaded",
+      settings: merged
+    });
+
     return merged;
   },
 
-  async save(newSettings) {
+  async save(newSettings, options = {}) {
+    const isReset = options.reset === true;
+
     const merged = mergeWithDefaults(newSettings);
     const errors = validateSettings(merged);
 
@@ -40,7 +49,13 @@ export const SettingsStore = {
 
     cachedSettings = merged;
     await writeToDB(merged);
-    notifySubscribers(merged);
+
+    // 🔥 NEW: typed events
+    notifySubscribers({
+      type: isReset ? "settingsReset" : "settingsUpdated",
+      settings: merged
+    });
+
     return merged;
   },
 
@@ -104,10 +119,11 @@ function mergeWithDefaults(userSettings) {
   };
 }
 
-function notifySubscribers(settings) {
+// 🔥 PATCHED: now receives an event object instead of raw settings
+function notifySubscribers(event) {
   for (const fn of subscribers) {
     try {
-      fn(settings);
+      fn(event);
     } catch (err) {
       console.error("Settings subscriber error:", err);
     }
@@ -115,7 +131,7 @@ function notifySubscribers(settings) {
 }
 
 // -------------------------------------------------------------
-// IndexedDB helpers
+// IndexedDB helpers (unchanged)
 // -------------------------------------------------------------
 
 function openDB() {

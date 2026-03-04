@@ -51,7 +51,7 @@
 }
 
 /* -------------------------------------------------------------
-   Dropdowns
+Dropdowns
 ------------------------------------------------------------- */
 
 .settings-field select {
@@ -69,12 +69,16 @@
 }
 
 /* -------------------------------------------------------------
-   Sliders
+Sliders
 ------------------------------------------------------------- */
 
 .settings-field input[type="range"] {
   width: 100%;
   margin: 6px 0;
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .slider-value {
@@ -154,17 +158,22 @@
   box-sizing: border-box;
 }
 
-.floating-settings-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  background: #242424;
-  border-bottom: 1px solid #333;
-  cursor: move;
-  user-select: none;
-  font-size: 0.9rem;
-}
+  .floating-settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background: #242424;
+    border-bottom: 1px solid #333;
+    cursor: grab;
+    user-select: none;
+    pointer-events: auto;
+  }
+
+  .floating-settings-header:active {
+    cursor: grabbing;
+  }
+
 
 .floating-settings-close {
   background: none;
@@ -178,6 +187,8 @@
   flex: 1 1 auto;
   overflow: auto;
   padding: 12px;
+  overscroll-behavior: contain;
+  overflow: hidden;
 }
 
 .floating-settings-resize {
@@ -215,4 +226,42 @@
   border-radius: 50%;
   background: #5a8cff;
   cursor: pointer;
+}
+
+
+input[type="range"] {
+  touch-action: none;
+}
+
+
+.scroll-inner {
+  overflow: auto;
+  height: 100%;
+}
+
+
+/* Outer container: NOT scrollable */
+.floating-settings-content {
+  flex: 1 1 auto;
+  overflow: hidden; /* critical */
+  padding: 0;
+}
+
+/* Inner container: scrollable */
+.floating-settings-scroll-inner {
+  overflow: auto;
+  height: 100%;
+  padding: 12px;
+}
+
+/* Your actual content root */
+.floating-settings-content-root {
+  display: block;
+}
+
+/* Prevent Chrome scroll-gesture interference */
+.floating-settings-content-root input[type="range"] {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }

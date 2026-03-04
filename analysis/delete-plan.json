@@ -1,0 +1,132 @@
+{
+  "unusedFiles": [
+    "engine/dsp.js",
+    "engine/engineDefaults.js",
+    "engine/engineState.js",
+    "engine/presets/exportPreset.js",
+    "engine/presets/importPreset.js",
+    "engine/presets/loadPreset.js",
+    "engine/presets/PresetStore.js",
+    "engine/presets/savePreset.js",
+    "engine/presets/validatePreset.js",
+    "engine/setters/index.js",
+    "engine/setters/setParms.js",
+    "engine/setters.js",
+    "engine/settings/loadSettings.js",
+    "engine/settings/saveSettings.js",
+    "engine/spec/ampEnv.js",
+    "engine/spec/fm.js",
+    "engine/spec/fx.js",
+    "engine/spec/global.js",
+    "engine/spec/globalFilter.js",
+    "engine/spec/index.js",
+    "engine/spec/osc.js",
+    "engine/spec/pitchEnv.js",
+    "engine/spec/routing.js",
+    "engine/spec/vibrato.js",
+    "engine/spec/voiceFilter.js",
+    "engine/state/cloneEngineState.js",
+    "engine/state/generateDefaultState.js",
+    "engine/state/loadVersionedDefaults.js",
+    "engine/utils.js",
+    "engine/validation/primitives.js",
+    "engine/validation/validateEngineState.js",
+    "engine/validation/validateModule.js",
+    "presets/applyPresetToEngine.js",
+    "presets/loadPreset.js",
+    "presets/presetSchema.js",
+    "presets/savePreset.js",
+    "presets/serializeEngineState.js",
+    "ui/bindings/filterBindings.js",
+    "ui/bindings/fmBindings.js",
+    "ui/bindings/fxBindings.js",
+    "ui/bindings/masterBindings.js",
+    "ui/bindings/oscBindings.js",
+    "ui/bindings/pitchEnvBindings.js",
+    "ui/bindings/vibratoBindings.js",
+    "ui/dirty.js",
+    "ui/panels/filterPanel.js",
+    "ui/panels/fmPanel.js",
+    "ui/panels/fxPanel.js",
+    "ui/panels/masterPanel.js",
+    "ui/panels/oscPanel.js",
+    "ui/panels/pitchEnvPanel.js",
+    "ui/panels/vibratoPanel.js",
+    "ui/renderUIFromState.js",
+    "ui/scheduleRender.js",
+    "ui/settings/components/ColorPicker.js",
+    "ui/settings/components/TextInput.js"
+  ],
+  "unusedExports": [
+    {
+      "file": "engine/engineState.js",
+      "exports": [
+        "createDefaultEngineState"
+      ]
+    },
+    {
+      "file": "engine/presets/exportPreset.js",
+      "exports": [
+        "exportPreset"
+      ]
+    },
+    {
+      "file": "engine/presets/importPreset.js",
+      "exports": [
+        "importPreset"
+      ]
+    },
+    {
+      "file": "engine/presets/PresetStore.js",
+      "exports": [
+        "PresetStore"
+      ]
+    },
+    {
+      "file": "engine/setters/index.js",
+      "exports": [
+        "setters"
+      ]
+    },
+    {
+      "file": "engine/setters/setParms.js",
+      "exports": [
+        "setParam"
+      ]
+    },
+    {
+      "file": "engine/settings/loadSettings.js",
+      "exports": [
+        "loadSettings"
+      ]
+    },
+    {
+      "file": "engine/state/generateDefaultState.js",
+      "exports": [
+        "generateDefaultState",
+        "createDefaultEngineState"
+      ]
+    },
+    {
+      "file": "engine/validation/validateEngineState.js",
+      "exports": [
+        "validateEngineState"
+      ]
+    },
+    {
+      "file": "ui/settings/components/ColorPicker.js",
+      "exports": [
+        "default"
+      ]
+    },
+    {
+      "file": "ui/settings/components/TextInput.js",
+      "exports": [
+        "default"
+      ]
+    }
+  ],
+  "extraFiles": [
+    "engine/setters/moduleSetters.js.txt"
+  ]
+}

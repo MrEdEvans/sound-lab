@@ -1,6 +1,6 @@
 // src/ui/settings/sections/UISettingsSection.js
 
-import { updateSetting } from "../uiSettingsPanelAPI.js";
+import { updateSetting } from "../settingsPanelAPI.js";
 
 export default class UISettingsSection {
   constructor(settings) {

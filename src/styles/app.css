@@ -23,4 +23,8 @@ body {
 }
 
 
+html, body, #app {
+  overflow-x: visible;
+  overflow-y: auto;
+}
 

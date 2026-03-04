@@ -1,6 +1,6 @@
 // src/ui/settings/sections/EngineSettingsSection.js
 
-import { updateSetting } from "../uiSettingsPanelAPI.js";
+import { updateSetting } from "../settingsPanelAPI.js";
 import Dropdown from "../components/Dropdown.js";
 import Slider from "../components/Slider.js";
 import Toggle from "../components/Toggle.js";
