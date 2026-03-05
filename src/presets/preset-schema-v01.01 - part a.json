@@ -1,0 +1,698 @@
+
+
+
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synth Preset V1",
+  "type": "object",
+  "required": ["metadata", "engine", "modules", "audioRouting", "modRouting"],
+  "properties": {
+    "metadata": { "$ref": "#/$defs/metadata" },
+    "engine": { "$ref": "#/$defs/engine" },
+    "modules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/module" }
+    },
+    "audioRouting": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/audioEdge" }
+    },
+    "modRouting": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/modEdge" }
+    },
+    "ui": { "$ref": "#/$defs/ui" },
+    "userData": { "type": "object", "additionalProperties": true }
+  },
+  "$defs": {
+
+
+
+
+    {
+      "metadata": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "author": { "type": "string" },
+          "description": { "type": "string" },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+
+
+
+    {
+      "engine": {
+        "type": "object",
+        "properties": {
+          "polyphony": { "type": "number" },
+          "tuning": { "type": "number" },
+          "glide": { "type": "number" },
+          "legato": { "type": "boolean" },
+          "macros": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "targets"],
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" },
+                "targets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["moduleId", "parameter", "amount"],
+                    "properties": {
+                      "moduleId": { "type": "string" },
+                      "parameter": { "type": "string" },
+                      "amount": { "type": "number" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+
+
+    {
+      "ui": {
+        "type": "object",
+        "properties": {
+          "selectedTab": { "type": "string" },
+          "expandedModules": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "collapsedClusters": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+
+
+
+    {
+      "audioEdge": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": {
+            "type": "string",
+            "pattern": "^(output|[A-Za-z0-9_]+)$"
+          }
+        }
+      }
+    }
+
+
+
+    {
+      "modEdge": {
+        "type": "object",
+        "required": ["from", "to", "amount"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "amount": { "type": "number" }
+        }
+      }
+    }
+
+
+
+    {
+      "module": {
+        "type": "object",
+        "required": ["id", "type", "signal", "parameters"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "oscillator",
+              "filter",
+              "envelope",
+              "lfo",
+              "delay",
+              "reverb",
+              "distortion",
+              "chorus",
+              "compressor",
+              "eq",
+              "limiter"
+            ]
+          },
+          "signal": {
+            "type": "string",
+            "enum": ["audio", "mod", "event"]
+          },
+          "parameters": { "type": "object" }
+        }
+      }
+    }
+
+
+
+
+
+    {
+      "oscillatorParams": {
+        "type": "object",
+        "properties": {
+          "waveform": { "type": "string", "enum": ["sine", "saw", "square", "triangle", "noise"] },
+          "pitch": { "type": "number" },
+          "detune": { "type": "number" },
+          "phase": { "type": "number" },
+          "level": { "type": "number" }
+        },
+        "required": ["waveform", "pitch", "detune", "phase", "level"],
+        "additionalProperties": false
+      },
+
+      "filterParams": {
+        "type": "object",
+        "properties": {
+          "filterType": { "type": "string", "enum": ["lowpass", "highpass", "bandpass", "notch"] },
+          "cutoff": { "type": "number" },
+          "resonance": { "type": "number" },
+          "drive": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["filterType", "cutoff", "resonance", "drive", "mix"],
+        "additionalProperties": false
+      },
+
+      "envelopeParams": {
+        "type": "object",
+        "properties": {
+          "attack": { "type": "number" },
+          "decay": { "type": "number" },
+          "sustain": { "type": "number" },
+          "release": { "type": "number" }
+        },
+        "required": ["attack", "decay", "sustain", "release"],
+        "additionalProperties": false
+      },
+
+      "lfoParams": {
+        "type": "object",
+        "properties": {
+          "shape": { "type": "string", "enum": ["sine", "triangle", "square", "saw", "random"] },
+          "rate": { "type": "number" },
+          "sync": { "type": "boolean" },
+          "phase": { "type": "number" },
+          "amount": { "type": "number" }
+        },
+        "required": ["shape", "rate", "sync", "phase", "amount"],
+        "additionalProperties": false
+      },
+
+      "delayParams": {
+        "type": "object",
+        "properties": {
+          "time": { "type": "number" },
+          "feedback": { "type": "number" },
+          "damping": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["time", "feedback", "damping", "mix"],
+        "additionalProperties": false
+      },
+
+      "reverbParams": {
+        "type": "object",
+        "properties": {
+          "reverbType": { "type": "string", "enum": ["hall", "plate", "room", "spring"] },
+          "size": { "type": "number" },
+          "decay": { "type": "number" },
+          "damping": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["reverbType", "size", "decay", "damping", "mix"],
+        "additionalProperties": false
+      },
+
+      "distortionParams": {
+        "type": "object",
+        "properties": {
+          "drive": { "type": "number" },
+          "tone": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["drive", "tone", "mix"],
+        "additionalProperties": false
+      },
+
+      "chorusParams": {
+        "type": "object",
+        "properties": {
+          "rate": { "type": "number" },
+          "depth": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["rate", "depth", "mix"],
+        "additionalProperties": false
+      },
+
+      "compressorParams": {
+        "type": "object",
+        "properties": {
+          "threshold": { "type": "number" },
+          "ratio": { "type": "number" },
+          "attack": { "type": "number" },
+          "release": { "type": "number" },
+          "knee": { "type": "number" },
+          "makeup": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["threshold", "ratio", "attack", "release", "knee", "makeup", "mix"],
+        "additionalProperties": false
+      },
+
+      "eqParams": {
+        "type": "object",
+        "properties": {
+          "lowGain": { "type": "number" },
+          "lowFreq": { "type": "number" },
+          "lowQ": { "type": "number" },
+          "midGain": { "type": "number" },
+          "midFreq": { "type": "number" },
+          "midQ": { "type": "number" },
+          "highGain": { "type": "number" },
+          "highFreq": { "type": "number" },
+          "highQ": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": [
+          "lowGain", "lowFreq", "lowQ",
+          "midGain", "midFreq", "midQ",
+          "highGain", "highFreq", "highQ",
+          "mix"
+        ],
+        "additionalProperties": false
+      },
+
+      "limiterParams": {
+        "type": "object",
+        "properties": {
+          "threshold": { "type": "number" },
+          "release": { "type": "number" },
+          "ceiling": { "type": "number" },
+          "lookahead": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["threshold", "release", "ceiling", "lookahead", "mix"],
+        "additionalProperties": false
+      }
+    }
+
+
+
+    {
+      "module": {
+        "type": "object",
+        "required": ["id", "type", "signal", "parameters"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "oscillator",
+              "filter",
+              "envelope",
+              "lfo",
+              "delay",
+              "reverb",
+              "distortion",
+              "chorus",
+              "compressor",
+              "eq",
+              "limiter"
+            ]
+          },
+          "signal": {
+            "type": "string",
+            "enum": ["audio", "mod", "event"]
+          },
+          "parameters": { "type": "object" }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "type": { "const": "oscillator" } } },
+            "then": { "properties": { "parameters": { "$ref": "#/$defs/oscillatorParams" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "filter" } } },
+            "then": { "properties": { "parameters": { "$ref": "#/$defs/filterParams" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "envelope" } } },
+            "then": { "properties": { "parameters": { "$ref": "#/$defs/envelopeParams" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "lfo" } } },
+            "then": { "properties": { "parameters": { "$ref": "#/$defs/lfoParams" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "delay" } } },
+            "then": { "properties": { "parameters": { "$ref": "#/$defs/delayParams" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "reverb" } } },
+            "then": { "properties": { "parameters": { "$ref": "#/$defs/reverbParams" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "distortion" } } },
+            "then": { "properties": { "parameters": { "$ref": "#/$defs/distortionParams" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "chorus" } } },
+            "then": { "properties": { "parameters": { "$ref": "#/$defs/chorusParams" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "compressor" } } },
+            "then": { "properties": { "parameters": { "$ref": "#/$defs/compressorParams" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "eq" } } },
+            "then": { "properties": { "parameters": { "$ref": "#/$defs/eqParams" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "limiter" } } },
+            "then": { "properties": { "parameters": { "$ref": "#/$defs/limiterParams" } } }
+          }
+        ],
+        "additionalProperties": false
+      }
+    }
+
+
+    "$defs": {
+      "metadata": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "author": { "type": "string" },
+          "description": { "type": "string" },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": false
+      },
+
+      "engine": {
+        "type": "object",
+        "properties": {
+          "polyphony": { "type": "number" },
+          "tuning": { "type": "number" },
+          "glide": { "type": "number" },
+          "legato": { "type": "boolean" },
+          "macros": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "targets"],
+              "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" },
+                "targets": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["moduleId", "parameter", "amount"],
+                    "properties": {
+                      "moduleId": { "type": "string" },
+                      "parameter": { "type": "string" },
+                      "amount": { "type": "number" }
+                    },
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+
+      "ui": {
+        "type": "object",
+        "properties": {
+          "selectedTab": { "type": "string" },
+          "expandedModules": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "collapsedClusters": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": false
+      },
+
+      "audioEdge": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": {
+            "type": "string",
+            "pattern": "^(output|[A-Za-z0-9_]+)$"
+          }
+        },
+        "additionalProperties": false
+      },
+
+      "modEdge": {
+        "type": "object",
+        "required": ["from", "to", "amount"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "amount": { "type": "number" }
+        },
+        "additionalProperties": false
+      },
+
+      "oscillatorParams": {
+        "type": "object",
+        "properties": {
+          "waveform": { "type": "string", "enum": ["sine", "saw", "square", "triangle", "noise"] },
+          "pitch": { "type": "number" },
+          "detune": { "type": "number" },
+          "phase": { "type": "number" },
+          "level": { "type": "number" }
+        },
+        "required": ["waveform", "pitch", "detune", "phase", "level"],
+        "additionalProperties": false
+      },
+
+      "filterParams": {
+        "type": "object",
+        "properties": {
+          "filterType": { "type": "string", "enum": ["lowpass", "highpass", "bandpass", "notch"] },
+          "cutoff": { "type": "number" },
+          "resonance": { "type": "number" },
+          "drive": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["filterType", "cutoff", "resonance", "drive", "mix"],
+        "additionalProperties": false
+      },
+
+      "envelopeParams": {
+        "type": "object",
+        "properties": {
+          "attack": { "type": "number" },
+          "decay": { "type": "number" },
+          "sustain": { "type": "number" },
+          "release": { "type": "number" }
+        },
+        "required": ["attack", "decay", "sustain", "release"],
+        "additionalProperties": false
+      },
+
+      "lfoParams": {
+        "type": "object",
+        "properties": {
+          "shape": { "type": "string", "enum": ["sine", "triangle", "square", "saw", "random"] },
+          "rate": { "type": "number" },
+          "sync": { "type": "boolean" },
+          "phase": { "type": "number" },
+          "amount": { "type": "number" }
+        },
+        "required": ["shape", "rate", "sync", "phase", "amount"],
+        "additionalProperties": false
+      },
+
+      "delayParams": {
+        "type": "object",
+        "properties": {
+          "time": { "type": "number" },
+          "feedback": { "type": "number" },
+          "damping": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["time", "feedback", "damping", "mix"],
+        "additionalProperties": false
+      },
+
+      "reverbParams": {
+        "type": "object",
+        "properties": {
+          "reverbType": { "type": "string", "enum": ["hall", "plate", "room", "spring"] },
+          "size": { "type": "number" },
+          "decay": { "type": "number" },
+          "damping": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["reverbType", "size", "decay", "damping", "mix"],
+        "additionalProperties": false
+      },
+
+      "distortionParams": {
+        "type": "object",
+        "properties": {
+          "drive": { "type": "number" },
+          "tone": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["drive", "tone", "mix"],
+        "additionalProperties": false
+      },
+
+      "chorusParams": {
+        "type": "object",
+        "properties": {
+          "rate": { "type": "number" },
+          "depth": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["rate", "depth", "mix"],
+        "additionalProperties": false
+      },
+
+      "compressorParams": {
+        "type": "object",
+        "properties": {
+          "threshold": { "type": "number" },
+          "ratio": { "type": "number" },
+          "attack": { "type": "number" },
+          "release": { "type": "number" },
+          "knee": { "type": "number" },
+          "makeup": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["threshold", "ratio", "attack", "release", "knee", "makeup", "mix"],
+        "additionalProperties": false
+      },
+
+      "eqParams": {
+        "type": "object",
+        "properties": {
+          "lowGain": { "type": "number" },
+          "lowFreq": { "type": "number" },
+          "lowQ": { "type": "number" },
+          "midGain": { "type": "number" },
+          "midFreq": { "type": "number" },
+          "midQ": { "type": "number" },
+          "highGain": { "type": "number" },
+          "highFreq": { "type": "number" },
+          "highQ": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": [
+          "lowGain", "lowFreq", "lowQ",
+          "midGain", "midFreq", "midQ",
+          "highGain", "highFreq", "highQ",
+          "mix"
+        ],
+        "additionalProperties": false
+      },
+
+      "limiterParams": {
+        "type": "object",
+        "properties": {
+          "threshold": { "type": "number" },
+          "release": { "type": "number" },
+          "ceiling": { "type": "number" },
+          "lookahead": { "type": "number" },
+          "mix": { "type": "number" }
+        },
+        "required": ["threshold", "release", "ceiling", "lookahead", "mix"],
+        "additionalProperties": false
+      },
+
+      "module": {
+        "type": "object",
+        "required": ["id", "type", "signal", "parameters"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "oscillator",
+              "filter",
+              "envelope",
+              "lfo",
+              "delay",
+              "reverb",
+              "distortion",
+              "chorus",
+              "compressor",
+              "eq",
+              "limiter"
+            ]
+          },
+          "signal": {
+            "type": "string",
+            "enum": ["audio", "mod", "event"]
+          },
+          "parameters": { "type": "object" }
+        },
+        "allOf": [
+          { "if": { "properties": { "type": { "const": "oscillator" } } }, "then": { "properties": { "parameters": { "$ref": "#/$defs/oscillatorParams" } } } },
+          { "if": { "properties": { "type": { "const": "filter" } } }, "then": { "properties": { "parameters": { "$ref": "#/$defs/filterParams" } } } },
+          { "if": { "properties": { "type": { "const": "envelope" } } }, "then": { "properties": { "parameters": { "$ref": "#/$defs/envelopeParams" } } } },
+          { "if": { "properties": { "type": { "const": "lfo" } } }, "then": { "properties": { "parameters": { "$ref": "#/$defs/lfoParams" } } } },
+          { "if": { "properties": { "type": { "const": "delay" } } }, "then": { "properties": { "parameters": { "$ref": "#/$defs/delayParams" } } } },
+          { "if": { "properties": { "type": { "const": "reverb" } } }, "then": { "properties": { "parameters": { "$ref": "#/$defs/reverbParams" } } } },
+          { "if": { "properties": { "type": { "const": "distortion" } } }, "then": { "properties": { "parameters": { "$ref": "#/$defs/distortionParams" } } } },
+          { "if": { "properties": { "type": { "const": "chorus" } } }, "then": { "properties": { "parameters": { "$ref": "#/$defs/chorusParams" } } } },
+          { "if": { "properties": { "type": { "const": "compressor" } } }, "then": { "properties": { "parameters": { "$ref": "#/$defs/compressorParams" } } } },
+          { "if": { "properties": { "type": { "const": "eq" } } }, "then": { "properties": { "parameters": { "$ref": "#/$defs/eqParams" } } } },
+          { "if": { "properties": { "type": { "const": "limiter" } } }, "then": { "properties": { "parameters": { "$ref": "#/$defs/limiterParams" } } } }
+        ],
+        "additionalProperties": false
+      }
+    }
+
+
+
+
+  }
+}
+
+
