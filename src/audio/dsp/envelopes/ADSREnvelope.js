@@ -9,7 +9,10 @@ export class ADSREnvelope {
         this.release = config.release || 0.2;
 
         this.output = context.createGain();
-        this.output.gain.value = 0;
+
+        const now = context.currentTime;
+        this.output.gain.cancelScheduledValues(now);
+        this.output.gain.setValueAtTime(0, now);
     }
 
     triggerAttack(time) {

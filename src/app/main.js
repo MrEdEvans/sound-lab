@@ -1,4 +1,4 @@
-import initUI from "./ui/uiBootstrap.js";
+import initUI from "../ui/layout/uiBootstrap.js";
 import { SettingsStore } from "../engine/settings/EngineSettingsStore.js";
 import { initSettingsPanelAPI } from "../ui/settings/uiSettingsPanelAPI.js";
 

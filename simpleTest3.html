@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Continuous Envelope Test</title>
+</head>
+<body>
+
+<button id="initBtn">Init Audio</button>
+<button id="seqBtn">Play 3‑note Sequence</button>
+
+<script>
+let ctx;
+
+document.getElementById("initBtn").addEventListener("click", () => {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    console.log("Audio initialized");
+});
+
+document.getElementById("seqBtn").addEventListener("click", () => {
+    if (!ctx) return;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    osc.type = "sine";
+    osc.connect(gain).connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+
+    const seq = [60, 62, 64];
+    const dur = 0.3;
+
+    const attack = 0.01;
+    const decay = 0.1;
+    const sustain = 0.2;
+
+    let currentLevel = 0;
+
+    seq.forEach((note, i) => {
+        const t = now + i * dur;
+
+        // Frequency
+        osc.frequency.setValueAtTime(mtof(note), t);
+
+        // Continuous envelope
+        gain.gain.cancelScheduledValues(t);
+        gain.gain.setValueAtTime(currentLevel, t);
+        gain.gain.linearRampToValueAtTime(0.3, t + attack);
+        gain.gain.linearRampToValueAtTime(sustain, t + attack + decay);
+
+        // Predict level at end of note
+        currentLevel = sustain;
+    });
+
+    const end = now + seq.length * dur;
+    gain.gain.linearRampToValueAtTime(0, end + 0.1);
+
+    osc.start(now);
+    osc.stop(end + 0.2);
+});
+</script>
+
+</body>
+</html>

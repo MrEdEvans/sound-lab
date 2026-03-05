@@ -6,15 +6,14 @@ export class VoiceAllocator {
     constructor(context, preset) {
         this.context = context;
         this.preset = preset;
-        this.maxVoices = preset.maxVoices || 16;
+        this.maxVoices = preset.maxVoices;
 
         this.voices = [];
-        this.activeVoices = new Map();
+        this.activeVoices = new Map();   // note → voice
         this.releasingVoices = new Set();
 
         this.buildVoices();
     }
-
 
     buildVoices() {
         this.voices = [];
@@ -24,68 +23,108 @@ export class VoiceAllocator {
     }
 
     applyPreset(preset) {
+        this.stopAll();
         this.preset = preset;
         this.maxVoices = preset.maxVoices || this.maxVoices;
-
-        this.stopAll();
         this.buildVoices();
+        this.activeVoices.clear();
+        this.releasingVoices.clear();
     }
 
-    noteOn(note, velocity, time) {
-        // If note is already active, retrigger the same voice
+    // ------------------------------------------------------------
+    // A voice is only free if its gain is actually silent
+    // ------------------------------------------------------------
+    isSilent(voice) {
+        const g = voice.ampGain.gain.value;
+        return g < 0.0001;   // effectively zero
+    }
+
+    // ------------------------------------------------------------
+    // Find a truly free voice (silent)
+    // ------------------------------------------------------------
+    findFreeVoice() {
+        return this.voices.find(v => this.isSilent(v));
+    }
+
+    // ------------------------------------------------------------
+    // Steal the quietest voice (never steal a loud one)
+    // ------------------------------------------------------------
+    stealVoice() {
+        let quietest = null;
+        let minGain = Infinity;
+
+        for (const v of this.voices) {
+            const g = v.ampGain.gain.value;
+            if (g < minGain) {
+                minGain = g;
+                quietest = v;
+            }
+        }
+
+        // Hard fade-out to silence before reuse
+        this.forceSilent(quietest);
+
+        return quietest;
+    }
+
+    // ------------------------------------------------------------
+    // Force a voice to silence immediately (no reuse clicks)
+    // ------------------------------------------------------------
+    forceSilent(voice) {
+        const now = this.context.currentTime;
+        const g = voice.ampGain.gain;
+
+        g.cancelScheduledValues(now);
+        g.setValueAtTime(g.value, now);
+        g.linearRampToValueAtTime(0, now + 0.005); // 5ms fade
+    }
+
+    // ------------------------------------------------------------
+    // NOTE ON
+    // ------------------------------------------------------------
+    noteOn(note, velocity = 1, time = this.context.currentTime) {
+        // Retrigger same note
         if (this.activeVoices.has(note)) {
             const voice = this.activeVoices.get(note);
             voice.noteOn(note, velocity, time);
             return;
         }
 
-        const voice = this.findFreeVoice() || this.stealVoice();
+        // Find a silent voice
+        let voice = this.findFreeVoice();
 
-        if (!voice) return;
+        // If none silent, steal the quietest
+        if (!voice) {
+            voice = this.stealVoice();
+        }
 
-        this.activeVoices.set(note, voice);
+        // Trigger
         voice.noteOn(note, velocity, time);
+        this.activeVoices.set(note, voice);
     }
 
-    noteOff(note, time) {
+    // ------------------------------------------------------------
+    // NOTE OFF
+    // ------------------------------------------------------------
+    noteOff(note, time = this.context.currentTime) {
         const voice = this.activeVoices.get(note);
         if (!voice) return;
 
         voice.noteOff(time);
+
         this.activeVoices.delete(note);
         this.releasingVoices.add(voice);
 
-        // Cleanup after release tail
-        setTimeout(() => {
-            if (!voice.active) {
-                this.releasingVoices.delete(voice);
-            }
-        }, 2000);
-    }
-
-    findFreeVoice() {
-        return this.voices.find(v => !v.active && !v.releasing);
-    }
-
-    stealVoice() {
-        // Prefer stealing the oldest releasing voice
-        for (const voice of this.releasingVoices) {
+        voice.onReleaseComplete = () => {
             this.releasingVoices.delete(voice);
-            return voice;
-        }
-
-        // Otherwise steal the oldest active voice
-        for (const voice of this.voices) {
-            if (voice.active) {
-                return voice;
-            }
-        }
-
-        return null;
+        };
     }
 
+    // ------------------------------------------------------------
+    // STOP ALL
+    // ------------------------------------------------------------
     stopAll() {
-        this.voices.forEach(v => v.stopAll());
+        this.voices.forEach(v => v.stop());
         this.activeVoices.clear();
         this.releasingVoices.clear();
     }

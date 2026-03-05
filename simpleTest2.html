@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Synth Test</title>
+</head>
+<body>
+    <h2>Synth Test</h2>
+
+    <button id="initBtn">Init Audio</button>
+    <button id="playBtn">Play Note</button>
+    <button id="stopBtn">Stop Note</button>
+
+    <!-- New test buttons -->
+    <button id="chord2Btn">Play 2‑Note Chord</button>
+    <button id="chord3Btn">Play 3‑Note Chord</button>
+    <button id="seq3Btn">Play 3‑Note Sequence</button>
+
+    <script type="module">
+        import AudioEngine from './src/audio/AudioEngine.js';
+
+        const engine = new AudioEngine();
+
+        document.getElementById("initBtn").addEventListener("click", async () => {
+            await engine.init();
+            await engine.resume();
+            console.log("Engine initialized");
+        });
+
+        // Single note
+        document.getElementById("playBtn").addEventListener("click", () => {
+            engine.noteOn(60, 1.0); // C4
+        });
+
+        document.getElementById("stopBtn").addEventListener("click", () => {
+            engine.noteOff(60);
+        });
+
+        // 2‑note chord (C + E)
+        document.getElementById("chord2Btn").addEventListener("click", () => {
+            const notes = [60, 64];
+            notes.forEach(n => engine.noteOn(n, 1.0));
+            setTimeout(() => notes.forEach(n => engine.noteOff(n)), 600);
+        });
+
+        // 3‑note chord (C + E + G)
+        document.getElementById("chord3Btn").addEventListener("click", () => {
+            const notes = [60, 64, 67];
+            notes.forEach(n => engine.noteOn(n, 1.0));
+            setTimeout(() => notes.forEach(n => engine.noteOff(n)), 700);
+        });
+
+        // 3‑note sequence (C → D → E)
+        document.getElementById("seq3Btn").addEventListener("click", () => {
+            const seq = [60, 62, 64];
+            const dur = 300;      // ms per note
+            const gap = 10;        // ms gap to avoid envelope collisions
+
+            seq.forEach((note, i) => {
+                const tOn  = engine.context.currentTime + (i * dur / 1000);
+                const tOff = tOn + (dur - gap) / 1000;   // end slightly early
+
+                engine.noteOn(note, 1.0, tOn);
+                engine.noteOff(note, tOff);
+            });
+        });
+
+    </script>
+</body>
+</html>
