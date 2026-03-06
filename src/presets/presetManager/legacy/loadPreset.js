@@ -1,8 +1,8 @@
 // src/engine/presets/loadPreset.js
 
-import { validatePreset } from "./validatePreset.js";
-import { loadVersionedDefaults } from "../state/loadVersionedEngineDefaults.js";
-import { cloneEngineState } from "../state/cloneEngineState.js";
+import { validatePreset } from "../validation/validatePreset-1.js";
+import { loadVersionedDefaults } from "../../../engine/state/loadVersionedEngineDefaults.js";
+import { cloneEngineState } from "../../../engine/state/cloneEngineState.js";
 
 export async function loadPreset(preset) {
   const errors = validatePreset(preset);

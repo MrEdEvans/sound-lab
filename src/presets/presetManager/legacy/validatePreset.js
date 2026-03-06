@@ -1,6 +1,6 @@
 // src/presets/validatePreset.js
 
-import { presetSchema } from "./presetSchema.js";
+import { presetSchema } from "../presetSchema.js";
 
 export function validatePreset(preset) {
     const errors = [];

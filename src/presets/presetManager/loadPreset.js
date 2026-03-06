@@ -1,15 +1,9 @@
-// src/engine/presets/loadPreset.js
+// src/presets/presetManager/loadPreset.js
 
-import { validatePreset } from "./validatePreset.js";
-import { loadVersionedDefaults } from "../state/loadVersionedDefaults.js";
-import { cloneEngineState } from "../state/cloneEngineState.js";
+import { loadVersionedDefaults } from "../../audio/engine/state/loadVersionedEngineDefaults.js";
+import { cloneEngineState } from "../../audio/engine/state/cloneEngineState.js";
 
 export async function loadPreset(preset) {
-  const errors = validatePreset(preset);
-  if (errors.length > 0) {
-    throw new Error(`Preset validation failed:\n${errors.join("\n")}`);
-  }
-
   const version = preset.engineVersion;
   if (!version) {
     throw new Error("Preset missing required field: engineVersion");
@@ -40,10 +34,7 @@ export async function loadPreset(preset) {
     metadata[key] = preset[key];
   }
 
-  // Required metadata
   metadata.engineVersion = version;
-
-  // Remove accidental metadata pollution
   delete metadata.version;
 
   const merged = structuredClone(defaults);

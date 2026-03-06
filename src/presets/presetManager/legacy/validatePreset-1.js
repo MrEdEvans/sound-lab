@@ -1,6 +1,6 @@
 // src/engine/presets/validatePreset.js
 
-import { loadVersionedDefaults } from "../state/loadVersionedDefaults.js";
+import { loadVersionedDefaults } from "../../../engine/state/loadVersionedEngineDefaults.js";
 
 const METADATA_SCHEMA = {
   name: "string",

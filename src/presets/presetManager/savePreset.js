@@ -1,6 +1,6 @@
-// src/engine/presets/savePreset.js
+// src/presets/presetManager/savePreset.js
 
-import { loadVersionedDefaults } from "../state/loadVersionedEngineDefaults.js";
+import { loadVersionedDefaults } from "../../audio/engine/state/loadVersionedEngineDefaults.js";
 
 function extractDeltas(current, defaults) {
   const result = {};
@@ -62,19 +62,9 @@ export async function savePreset(engineState, metadata = {}, pretty = true) {
   }
 
   const metadataOrder = [
-    "name",
-    "author",
-    "description",
-    "tags",
-    "genre",
-    "mood",
-    "createdAt",
-    "updatedAt",
-    "favorite",
-    "rating",
-    "engineVersion",
-    "presetFormatVersion",
-    "uuid"
+    "name", "author", "description", "tags", "genre", "mood",
+    "createdAt", "updatedAt", "favorite", "rating",
+    "engineVersion", "presetFormatVersion", "uuid"
   ];
 
   const orderedMetadata = {};

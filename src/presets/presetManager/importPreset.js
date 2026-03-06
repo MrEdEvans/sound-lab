@@ -1,5 +1,6 @@
-// src/engine/presets/importPreset.js
-import { validatePreset } from "./validatePreset.js";
+// src/presets/presetManager/importPreset.js
+
+import { validatePreset } from "../presetValidation/validatePreset.js";
 import { loadPreset } from "./loadPreset.js";
 
 export async function importPreset(jsonInput) {
