@@ -14,7 +14,7 @@ export class VoiceAllocator {
 
         this.voices = [];
         this.activeVoices = new Map();   // note → voice
-        this.releasingVoices = new Set();
+        this.releasingVoices = new Set(); // voices currently in release
 
         this.buildVoices();
     }
@@ -32,47 +32,52 @@ export class VoiceAllocator {
     }
 
     // --------------------------------------------------------------------------
-    // APPLY NEW PRESET
+    // STATE HELPERS
     // --------------------------------------------------------------------------
-    applyPreset(preset) {
-        this.stopAll();
+    isActive(voice) {
+        // any map value equal to this voice
+        for (const v of this.activeVoices.values()) {
+            if (v === voice) return true;
+        }
+        return false;
+    }
 
-        this.preset = preset;
-        this.maxVoices = preset.engine?.polyphony || this.maxVoices;
+    isReleasing(voice) {
+        return this.releasingVoices.has(voice);
+    }
 
-        this.buildVoices();
-        this.activeVoices.clear();
-        this.releasingVoices.clear();
+    // A voice is free only when it is neither active nor releasing
+    isFree(voice) {
+        return !this.isActive(voice) && !this.isReleasing(voice);
     }
 
     // --------------------------------------------------------------------------
-    // A voice is free only when its gain is silent
-    // --------------------------------------------------------------------------
-    isSilent(voice) {
-        const g = voice.graph.voiceBus.gain.value;
-        return g < 0.0001;
-    }
-
-    // --------------------------------------------------------------------------
-    // Find a free (silent) voice
+    // Find a free voice (never reuse a releasing voice)
     // --------------------------------------------------------------------------
     findFreeVoice() {
-        return this.voices.find(v => this.isSilent(v));
+        return this.voices.find(v => this.isFree(v));
     }
 
     // --------------------------------------------------------------------------
-    // Steal the quietest voice
+    // Steal the quietest *active* voice (as a last resort)
     // --------------------------------------------------------------------------
     stealVoice() {
         let quietest = null;
         let minGain = Infinity;
 
         for (const v of this.voices) {
+            if (!this.isActive(v)) continue; // only steal from active voices
+
             const g = v.graph.voiceBus.gain.value;
             if (g < minGain) {
                 minGain = g;
                 quietest = v;
             }
+        }
+
+        // If somehow none are active (edge case), fall back to any non‑releasing voice
+        if (!quietest) {
+            quietest = this.voices.find(v => !this.isReleasing(v)) || this.voices[0];
         }
 
         this.forceSilent(quietest);
@@ -95,7 +100,7 @@ export class VoiceAllocator {
     // NOTE ON
     // --------------------------------------------------------------------------
     noteOn(note, velocity = 1.0, time = this.context.currentTime) {
-        // Retrigger same note
+        // Retrigger same note if already active
         if (this.activeVoices.has(note)) {
             const voice = this.activeVoices.get(note);
             voice.note = note;
@@ -104,13 +109,16 @@ export class VoiceAllocator {
             return;
         }
 
-        // Find a silent voice
+        // Find a truly free voice (not active, not releasing)
         let voice = this.findFreeVoice();
 
-        // If none silent, steal the quietest
+        // If none free, steal the quietest active voice
         if (!voice) {
             voice = this.stealVoice();
         }
+
+        // This voice is now active
+        this.releasingVoices.delete(voice);
 
         voice.note = note;
         voice.velocity = velocity;
@@ -133,6 +141,7 @@ export class VoiceAllocator {
 
         voice.onReleaseComplete = () => {
             this.releasingVoices.delete(voice);
+            // At this point, voice is fully free and eligible for reuse
         };
     }
 
@@ -140,8 +149,14 @@ export class VoiceAllocator {
     // STOP ALL
     // --------------------------------------------------------------------------
     stopAll() {
+        const now = this.context.currentTime;
+
         for (const v of this.voices) {
-            try { v.noteOff(this.context.currentTime); } catch { }
+            try {
+                v.noteOff(now);
+            } catch {
+                // ignore
+            }
         }
 
         this.activeVoices.clear();

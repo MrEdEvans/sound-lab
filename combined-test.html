@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Combined Synth + Preset Test</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    button { margin: 5px; padding: 8px 12px; }
+    textarea { width: 100%; height: 200px; margin-top: 10px; }
+    .row { margin-bottom: 20px; }
+    h2 { margin-top: 40px; }
+  </style>
+</head>
+<body>
+
+  <h1>Combined Synth + Preset Test</h1>
+
+  <!-- ========================= -->
+  <!-- PRESET MANAGEMENT SECTION -->
+  <!-- ========================= -->
+  <h2>Preset Manager</h2>
+
+  <div class="row">
+    <button id="btnFetch">Fetch Selected</button>
+    <button id="btnResolve">Resolve Selected</button>
+    <button id="btnApply">Apply to Engine</button>
+  </div>
+
+  <div class="row">
+    <button id="btnSnapshot">Snapshot Engine</button>
+    <button id="btnSave">Save Preset</button>
+    <button id="btnExport">Export Preset</button>
+  </div>
+
+  <div class="row">
+    <button id="btnImport">Import Preset</button>
+    <input type="file" id="fileInput" accept=".json" />
+  </div>
+
+  <div class="row">
+    <label>Preset:</label>
+    <select id="presetSelect"></select>
+    <button id="btnLoadPreset">Load Selected Preset</button>
+  </div>
+
+  <!-- ========================= -->
+  <!-- AUDIO ENGINE SECTION -->
+  <!-- ========================= -->
+  <h2>Audio Engine</h2>
+
+  <div class="row">
+    <button id="initBtn">Init Audio (Selected Preset)</button>
+    <button id="playBtn">Play Note</button>
+    <button id="stopBtn">Stop Note</button>
+  </div>
+
+  <div class="row">
+    <button id="chord2Btn">Play 2‑Note Chord</button>
+    <button id="chord3Btn">Play 3‑Note Chord</button>
+    <button id="seq3Btn">Play 3‑Note Sequence</button>
+  </div>
+
+  <h3>Output</h3>
+  <textarea id="output"></textarea>
+
+  <script type="module">
+    import AudioEngine from "./src/audio/AudioEngine.js";
+    import { PresetManager } from "./src/presets/presetManager/PresetManager.js";
+
+    const output = document.getElementById("output");
+    const fileInput = document.getElementById("fileInput");
+    const presetSelect = document.getElementById("presetSelect");
+
+    function log(obj) {
+      output.value = JSON.stringify(obj, null, 2);
+    }
+
+    // ============================
+    // Instantiate Engine + Manager
+    // ============================
+    const engine = new AudioEngine();
+    const pm = new PresetManager();
+
+    // Populate dropdown
+    function refreshPresetList() {
+      presetSelect.innerHTML = "";
+      for (const id of pm.presets.keys()) {
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = id;
+        presetSelect.appendChild(opt);
+      }
+    }
+    refreshPresetList();
+
+    function getSelectedPresetId() {
+      return presetSelect.value;
+    }
+
+    // ============================
+    // PRESET MANAGER BUTTONS
+    // ============================
+
+    document.getElementById("btnFetch").onclick = async () => {
+      const id = getSelectedPresetId();
+      const preset = await pm.fetch(id);
+      log(preset);
+    };
+
+    document.getElementById("btnResolve").onclick = async () => {
+      const id = getSelectedPresetId();
+      const resolved = await pm.resolve(id);
+      log(resolved);
+    };
+
+    document.getElementById("btnApply").onclick = async () => {
+      const id = getSelectedPresetId();
+      const applied = await pm.applyToEngine(engine, id);
+      log(applied);
+    };
+
+    document.getElementById("btnSnapshot").onclick = () => {
+      const snap = pm.snapshotFromEngine(engine, {
+        name: "Snapshot Test",
+        author: "Tester"
+      });
+      log(snap);
+    };
+
+    document.getElementById("btnSave").onclick = async () => {
+      const id = getSelectedPresetId();
+      const preset = await pm.fetch(id);
+      const saved = await pm.save(id, preset);
+      log(saved);
+    };
+
+    document.getElementById("btnExport").onclick = async () => {
+      const id = getSelectedPresetId();
+      const json = await pm.export(id);
+      log(json);
+    };
+
+    document.getElementById("btnImport").onclick = async () => {
+      const file = fileInput.files[0];
+      if (!file) return alert("Choose a JSON file first");
+
+      const text = await file.text();
+      const id = await pm.import(text);
+
+      refreshPresetList();
+      presetSelect.value = id;
+
+      log({ importedId: id });
+    };
+
+    document.getElementById("btnLoadPreset").onclick = async () => {
+      const id = getSelectedPresetId();
+      const preset = await pm.resolve(id);
+      engine.loadPreset(preset);
+      log({ loaded: id });
+    };
+
+    // ============================
+    // AUDIO ENGINE BUTTONS
+    // ============================
+
+    document.getElementById("initBtn").onclick = async () => {
+      const id = getSelectedPresetId();
+      const preset = await pm.resolve(id);
+      await engine.init(preset);
+      await engine.resume();
+      engine.dumpGraph();
+      log({ initializedWith: id });
+    };
+
+    document.getElementById("playBtn").onclick = () => {
+      engine.noteOn(60, 1.0);
+    };
+
+    document.getElementById("stopBtn").onclick = () => {
+      engine.noteOff(60);
+    };
+
+    document.getElementById("chord2Btn").onclick = () => {
+      const notes = [60, 64];
+      notes.forEach(n => engine.noteOn(n, 1.0));
+      setTimeout(() => notes.forEach(n => engine.noteOff(n)), 600);
+    };
+
+    document.getElementById("chord3Btn").onclick = () => {
+      const notes = [60, 64, 67];
+      notes.forEach(n => engine.noteOn(n, 1.0));
+      setTimeout(() => notes.forEach(n => engine.noteOff(n)), 700);
+    };
+
+    document.getElementById("seq3Btn").onclick = () => {
+      const seq = [60, 62, 64];
+      const dur = 300;
+      const gap = 10;
+
+      seq.forEach((note, i) => {
+        const tOn  = engine.context.currentTime + (i * dur / 1000);
+        const tOff = tOn + (dur - gap) / 1000;
+
+        engine.noteOn(note, 1.0, tOn);
+        engine.noteOff(note, tOff);
+      });
+    };
+
+  </script>
+</body>
+</html>

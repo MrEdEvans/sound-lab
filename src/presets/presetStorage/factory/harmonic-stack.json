@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "name": "HarmonicStack",
+    "author": "System",
+    "description": "Three-oscillator harmonic stack for engine testing.",
+    "tags": [],
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  "engine": {
+    "polyphony": 8,
+    "tuning": 0,
+    "glide": 0,
+    "legato": false,
+    "macros": []
+  },
+  "modules": [
+    {
+      "id": "osc1",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "sine",
+        "pitch": 0,
+        "detune": 0,
+        "phase": 0,
+        "level": 0.8
+      }
+    },
+    {
+      "id": "osc2",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "sine",
+        "pitch": 12,
+        "detune": 0,
+        "phase": 0,
+        "level": 0.5
+      }
+    },
+    {
+      "id": "osc3",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "sine",
+        "pitch": 19,
+        "detune": 0,
+        "phase": 0,
+        "level": 0.3
+      }
+    },
+    {
+      "id": "filter1",
+      "type": "filter",
+      "signal": "voice",
+      "parameters": {
+        "filterType": "lowpass",
+        "cutoff": 2000,
+        "resonance": 0.2,
+        "drive": 0,
+        "mix": 1
+      }
+    },
+    {
+      "id": "amp",
+      "type": "envelope",
+      "signal": "mod",
+      "parameters": {
+        "attack": 0.01,
+        "decay": 0.2,
+        "sustain": 0.8,
+        "release": 0.3
+      }
+    }
+  ],
+  "audioRouting": [
+    { "from": "osc1", "to": "filter1" },
+    { "from": "osc2", "to": "filter1" },
+    { "from": "osc3", "to": "filter1" },
+    { "from": "filter1", "to": "voiceBus" }
+  ],
+  "modRouting": []
+}

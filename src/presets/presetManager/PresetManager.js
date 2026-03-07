@@ -39,8 +39,6 @@ export class PresetManager {
     // Internal: create a default preset matching the schema
     // ------------------------------------------------------------
     _createInitPreset() {
-        const defaults = generateDefaultEngineState();
-
         return {
             metadata: {
                 name: "Init",
@@ -51,10 +49,58 @@ export class PresetManager {
                 updatedAt: new Date().toISOString()
             },
 
-            engine: defaults.engine,
-            modules: defaults.modules,
-            audioRouting: defaults.audioRouting,
-            modRouting: defaults.modRouting,
+            engine: {
+                polyphony: 8,
+                tuning: 0,
+                glide: 0,
+                legato: false,
+                macros: []
+            },
+
+            modules: [
+                {
+                    id: "osc1",
+                    type: "oscillator",
+                    signal: "voice",
+                    parameters: {
+                        waveform: "saw",
+                        pitch: 0,
+                        detune: 0,
+                        phase: 0,
+                        level: 0.8
+                    }
+                },
+                {
+                    id: "filter1",
+                    type: "filter",
+                    signal: "voice",
+                    parameters: {
+                        filterType: "lowpass",
+                        cutoff: 1200,
+                        resonance: 0.2,
+                        drive: 0,
+                        mix: 1
+                    }
+                },
+                {
+                    id: "amp",
+                    type: "envelope",
+                    signal: "mod",
+                    parameters: {
+                        attack: 0.01,
+                        decay: 0.2,
+                        sustain: 0.7,
+                        release: 0.3
+                    }
+                }
+            ],
+
+            audioRouting: [
+                { from: "osc1", to: "filter1" },
+                { from: "filter1", to: "voiceBus" }
+            ],
+
+            modRouting: [],
 
             ui: {
                 selectedTab: "main",
@@ -65,6 +111,7 @@ export class PresetManager {
             userData: {}
         };
     }
+
 
     // ------------------------------------------------------------
     // Fetch preset by ID

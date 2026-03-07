@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "name": "LightSaberHum",
+    "author": "System",
+    "description": "Detuned saws through resonant bandpass.",
+    "tags": []
+  },
+  "engine": {
+    "polyphony": 8,
+    "tuning": 0,
+    "glide": 0,
+    "legato": false,
+    "macros": []
+  },
+  "modules": [
+    {
+      "id": "osc1",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "sawtooth",
+        "pitch": 0,
+        "detune": -5,
+        "phase": 0,
+        "level": 0.7
+      }
+    },
+    {
+      "id": "osc2",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "sawtooth",
+        "pitch": 0,
+        "detune": 5,
+        "phase": 0,
+        "level": 0.7
+      }
+    },
+    {
+      "id": "filter1",
+      "type": "filter",
+      "signal": "voice",
+      "parameters": {
+        "filterType": "bandpass",
+        "cutoff": 300,
+        "resonance": 8.0,
+        "drive": 0,
+        "mix": 1
+      }
+    },
+    {
+      "id": "amp",
+      "type": "envelope",
+      "signal": "mod",
+      "parameters": {
+        "attack": 0.1,
+        "decay": 0.3,
+        "sustain": 0.9,
+        "release": 0.4
+      }
+    }
+  ],
+  "audioRouting": [
+    { "from": "osc1", "to": "filter1" },
+    { "from": "osc2", "to": "filter1" },
+    { "from": "filter1", "to": "voiceBus" }
+  ],
+  "modRouting": []
+}

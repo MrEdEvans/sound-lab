@@ -1,0 +1,57 @@
+{
+  "metadata": {
+    "name": "MarioCoin",
+    "author": "System",
+    "description": "Classic retro coin ping.",
+    "tags": []
+  },
+  "engine": {
+    "polyphony": 8,
+    "tuning": 0,
+    "glide": 0,
+    "legato": false,
+    "macros": []
+  },
+  "modules": [
+    {
+      "id": "osc1",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "square",
+        "pitch": 0,
+        "detune": 0,
+        "phase": 0,
+        "level": 0.9
+      }
+    },
+    {
+      "id": "filter1",
+      "type": "filter",
+      "signal": "voice",
+      "parameters": {
+        "filterType": "highpass",
+        "cutoff": 800,
+        "resonance": 0.1,
+        "drive": 0,
+        "mix": 1
+      }
+    },
+    {
+      "id": "amp",
+      "type": "envelope",
+      "signal": "mod",
+      "parameters": {
+        "attack": 0.001,
+        "decay": 0.15,
+        "sustain": 0.0,
+        "release": 0.05
+      }
+    }
+  ],
+  "audioRouting": [
+    { "from": "osc1", "to": "filter1" },
+    { "from": "filter1", "to": "voiceBus" }
+  ],
+  "modRouting": []
+}

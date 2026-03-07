@@ -104,16 +104,17 @@ export default class Voice {
             // Waveform
             osc.type = oscDef.parameters.waveform;
 
-            // Frequency
-            const pitch = oscDef.parameters.pitch || 0;
-            const detune = oscDef.parameters.detune || 0;
+            // Force numeric conversion (fixes tuning)
+            const pitch = Number(oscDef.parameters.pitch) || 0;
+            const detune = Number(oscDef.parameters.detune) || 0;
+
             const freq = this.midiToFreq(this.note + pitch);
 
             osc.frequency.setValueAtTime(freq, time);
             osc.detune.setValueAtTime(detune, time);
 
             // Micro‑delay start
-            const startDelay = oscDef.parameters.startDelay || 0;
+            const startDelay = Number(oscDef.parameters.startDelay) || 0;
             const startAt = time + startDelay;
 
             // Correct module lookup
@@ -132,6 +133,7 @@ export default class Voice {
             this.oscillators.push(osc);
         });
     }
+
 
     // --------------------------------------------------------------------------
     // APPLY AMP ENVELOPE (anti‑click preserved)

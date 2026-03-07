@@ -1,0 +1,96 @@
+{
+  "metadata": {
+    "name": "InharmonicBell",
+    "author": "System",
+    "description": "Additive-style bell using inharmonic partials.",
+    "tags": []
+  },
+  "engine": {
+    "polyphony": 8,
+    "tuning": 0,
+    "glide": 0,
+    "legato": false,
+    "macros": []
+  },
+  "modules": [
+    {
+      "id": "osc1",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "sine",
+        "pitch": 0,
+        "detune": 0,
+        "phase": 0,
+        "level": 1.0
+      }
+    },
+    {
+      "id": "osc2",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "sine",
+        "pitch": 4.98,
+        "detune": 0,
+        "phase": 0,
+        "level": 0.6
+      }
+    },
+    {
+      "id": "osc3",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "sine",
+        "pitch": 17.18,
+        "detune": 0,
+        "phase": 0,
+        "level": 0.4
+      }
+    },
+    {
+      "id": "osc4",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "sine",
+        "pitch": 23.89,
+        "detune": 0,
+        "phase": 0,
+        "level": 0.25
+      }
+    },
+    {
+      "id": "filter1",
+      "type": "filter",
+      "signal": "voice",
+      "parameters": {
+        "filterType": "lowpass",
+        "cutoff": 6000,
+        "resonance": 0.1,
+        "drive": 0,
+        "mix": 1
+      }
+    },
+    {
+      "id": "amp",
+      "type": "envelope",
+      "signal": "mod",
+      "parameters": {
+        "attack": 0.005,
+        "decay": 1.2,
+        "sustain": 0.0,
+        "release": 1.0
+      }
+    }
+  ],
+  "audioRouting": [
+    { "from": "osc1", "to": "filter1" },
+    { "from": "osc2", "to": "filter1" },
+    { "from": "osc3", "to": "filter1" },
+    { "from": "osc4", "to": "filter1" },
+    { "from": "filter1", "to": "voiceBus" }
+  ],
+  "modRouting": []
+}

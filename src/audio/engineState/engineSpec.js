@@ -10,8 +10,11 @@ export const engineSpec = {
     },
 
     moduleTypes: {
+        // -----------------------
+        // PER‑VOICE MODULES
+        // -----------------------
         oscillator: {
-            signal: "audio",
+            signal: "voice",
             params: {
                 waveform: {
                     type: "string",
@@ -26,7 +29,7 @@ export const engineSpec = {
         },
 
         filter: {
-            signal: "audio",
+            signal: "voice",
             params: {
                 filterType: {
                     type: "string",
@@ -72,8 +75,11 @@ export const engineSpec = {
             }
         },
 
+        // -----------------------
+        // GLOBAL FX MODULES
+        // -----------------------
         delay: {
-            signal: "audio",
+            signal: "global",
             params: {
                 time: { type: "number", min: 0, max: 2, default: 0.3, unit: "seconds" },
                 feedback: { type: "number", min: 0, max: 0.95, default: 0.35 },
@@ -83,7 +89,7 @@ export const engineSpec = {
         },
 
         reverb: {
-            signal: "audio",
+            signal: "global",
             params: {
                 reverbType: {
                     type: "string",
@@ -98,7 +104,7 @@ export const engineSpec = {
         },
 
         distortion: {
-            signal: "audio",
+            signal: "global",
             params: {
                 drive: { type: "number", min: 0, max: 1, default: 0.4 },
                 tone: { type: "number", min: 0, max: 1, default: 0.5 },
@@ -107,7 +113,7 @@ export const engineSpec = {
         },
 
         chorus: {
-            signal: "audio",
+            signal: "global",
             params: {
                 rate: { type: "number", min: 0.01, max: 10, default: 1.5, unit: "Hz" },
                 depth: { type: "number", min: 0, max: 1, default: 0.4 },
@@ -116,7 +122,7 @@ export const engineSpec = {
         },
 
         compressor: {
-            signal: "audio",
+            signal: "global",
             params: {
                 threshold: { type: "number", min: -60, max: 0, default: -18, unit: "dB" },
                 ratio: { type: "number", min: 1, max: 20, default: 4 },
@@ -129,7 +135,7 @@ export const engineSpec = {
         },
 
         eq: {
-            signal: "audio",
+            signal: "global",
             params: {
                 lowGain: { type: "number", min: -24, max: 24, default: 0, unit: "dB" },
                 lowFreq: { type: "number", min: 20, max: 500, default: 120, unit: "Hz", scale: "log" },
@@ -145,7 +151,7 @@ export const engineSpec = {
         },
 
         limiter: {
-            signal: "audio",
+            signal: "global",
             params: {
                 threshold: { type: "number", min: -24, max: 0, default: -0.5, unit: "dB" },
                 release: { type: "number", min: 0.005, max: 0.5, default: 0.1, unit: "seconds" },

@@ -1,0 +1,96 @@
+{
+  "metadata": {
+    "name": "HybridComplex",
+    "author": "System",
+    "description": "Parallel subtractive + additive routing test.",
+    "tags": []
+  },
+  "engine": {
+    "polyphony": 8,
+    "tuning": 0,
+    "glide": 0,
+    "legato": false,
+    "macros": []
+  },
+  "modules": [
+    {
+      "id": "osc1",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "sawtooth",
+        "pitch": 0,
+        "detune": 0,
+        "phase": 0,
+        "level": 0.7
+      }
+    },
+    {
+      "id": "osc2",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "sine",
+        "pitch": 9.64,
+        "detune": 0,
+        "phase": 0,
+        "level": 0.4
+      }
+    },
+    {
+      "id": "osc3",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "sine",
+        "pitch": 14.03,
+        "detune": 0,
+        "phase": 0,
+        "level": 0.3
+      }
+    },
+    {
+      "id": "filter1",
+      "type": "filter",
+      "signal": "voice",
+      "parameters": {
+        "filterType": "lowpass",
+        "cutoff": 1500,
+        "resonance": 0.5,
+        "drive": 0,
+        "mix": 1
+      }
+    },
+    {
+      "id": "filter2",
+      "type": "filter",
+      "signal": "voice",
+      "parameters": {
+        "filterType": "bandpass",
+        "cutoff": 800,
+        "resonance": 1.0,
+        "drive": 0,
+        "mix": 1
+      }
+    },
+    {
+      "id": "amp",
+      "type": "envelope",
+      "signal": "mod",
+      "parameters": {
+        "attack": 0.02,
+        "decay": 0.3,
+        "sustain": 0.6,
+        "release": 0.4
+      }
+    }
+  ],
+  "audioRouting": [
+    { "from": "osc1", "to": "filter1" },
+    { "from": "filter1", "to": "voiceBus" },
+    { "from": "osc2", "to": "filter2" },
+    { "from": "osc3", "to": "filter2" },
+    { "from": "filter2", "to": "voiceBus" }
+  ],
+  "modRouting": []
+}
