@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Preset Test UI</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    button { margin: 5px; padding: 8px 12px; }
+    textarea { width: 100%; height: 200px; margin-top: 10px; }
+    .row { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+  <h1>Preset Test UI</h1>
+
+  <div class="row">
+    <button id="btnFetch">Fetch Preset</button>
+    <button id="btnResolve">Resolve Preset</button>
+    <button id="btnApply">Apply to Engine</button>
+  </div>
+
+  <div class="row">
+    <button id="btnSnapshot">Snapshot Engine</button>
+    <button id="btnSave">Save Preset</button>
+    <button id="btnExport">Export Preset</button>
+  </div>
+
+  <div class="row">
+    <button id="btnImport">Import Preset</button>
+    <input type="file" id="fileInput" accept=".json" />
+  </div>
+
+  <h3>Output</h3>
+  <textarea id="output"></textarea>
+
+  <script type="module">
+    import { PresetManager } from "./src/presets/presetManager/PresetManager.js";
+
+    // Fake engine for testing
+    const engine = {
+      state: {
+        osc1: { gain: 0.5, detune: 0 },
+        filter: { cutoff: 800, resonance: 0.2 }
+      }
+    };
+
+    const pm = new PresetManager();
+
+    const output = document.getElementById("output");
+    const fileInput = document.getElementById("fileInput");
+
+    function log(obj) {
+      output.value = JSON.stringify(obj, null, 2);
+    }
+
+    // --- Fetch preset ---
+    document.getElementById("btnFetch").onclick = async () => {
+      const preset = await pm.fetch("init"); // or any known ID
+      log(preset);
+    };
+
+    // --- Resolve preset ---
+    document.getElementById("btnResolve").onclick = async () => {
+      const resolved = await pm.resolve("init");
+      log(resolved);
+    };
+
+    // --- Apply preset ---
+    document.getElementById("btnApply").onclick = async () => {
+      const applied = await pm.applyToEngine(engine, "init");
+      log(applied);
+    };
+
+    // --- Snapshot engine ---
+    document.getElementById("btnSnapshot").onclick = () => {
+      const snap = pm.snapshotFromEngine(engine, {
+        engineVersion: "1.0.0",
+        presetFormatVersion: 1,
+        name: "Snapshot Test"
+      });
+      log(snap);
+    };
+
+    // --- Save preset ---
+    document.getElementById("btnSave").onclick = async () => {
+      const snap = pm.snapshotFromEngine(engine, {
+        engineVersion: "1.0.0",
+        presetFormatVersion: 1,
+        name: "Saved Test"
+      });
+      const saved = await pm.save("saved-test", snap.engineState, snap.metadata);
+      log(saved);
+    };
+
+    // --- Export preset ---
+    document.getElementById("btnExport").onclick = async () => {
+      const json = await pm.export("saved-test");
+      log(json);
+    };
+
+    // --- Import preset ---
+    document.getElementById("btnImport").onclick = async () => {
+      const file = fileInput.files[0];
+      if (!file) return alert("Choose a JSON file first");
+
+      const text = await file.text();
+      const id = await pm.import(text);
+      log({ importedId: id });
+    };
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "engine": {
+    "polyphony": 8,
+    "tuning": 0,
+    "glide": 0,
+    "legato": false,
+    "macros": []
+  },
+  "modules": [],
+  "audioRouting": [],
+  "modRouting": []
+}

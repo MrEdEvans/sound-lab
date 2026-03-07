@@ -1,0 +1,32 @@
+{
+  "name": "Bright Pluck",
+  "author": "Test User",
+  "description": "Sharp pluck with bright filter and quick decay.",
+  "tags": ["pluck", "bright"],
+  "genre": "electronic",
+  "mood": "energetic",
+  "createdAt": "2025-01-02T12:00:00Z",
+  "updatedAt": "2025-01-02T12:00:00Z",
+  "favorite": true,
+  "rating": 5,
+  "engineVersion": "1.0.0",
+  "presetFormatVersion": 1,
+  "uuid": "22222222-2222-2222-2222-222222222222",
+
+  "osc1": {
+    "gain": 0.8,
+    "detune": 0
+  },
+
+  "filter": {
+    "cutoff": 6000,
+    "resonance": 0.25
+  },
+
+  "env1": {
+    "attack": 0.01,
+    "decay": 0.15,
+    "sustain": 0.2,
+    "release": 0.3
+  }
+}

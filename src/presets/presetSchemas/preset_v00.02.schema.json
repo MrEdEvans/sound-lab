@@ -1,0 +1,742 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synth Preset V1.1",
+  "type": "object",
+  "required": ["metadata", "engine", "modules", "audioRouting", "modRouting"],
+  "properties": {
+    "metadata": { "$ref": "#/$defs/metadata" },
+    "engine": { "$ref": "#/$defs/engine" },
+    "modules": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 128,
+      "items": { "$ref": "#/$defs/module" }
+    },
+    "audioRouting": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/audioEdge" }
+    },
+    "modRouting": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/modEdge" }
+    },
+    "ui": { "$ref": "#/$defs/ui" },
+    "userData": { "type": "object", "additionalProperties": true }
+  },
+
+  "$defs": {
+
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9 _\\-()]+$"
+        },
+        "author": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string", "maxLength": 32 },
+          "maxItems": 32
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+
+    "engine": {
+      "type": "object",
+      "properties": {
+        "polyphony": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 64,
+          "default": 8
+        },
+        "tuning": {
+          "type": "number",
+          "minimum": -1200,
+          "maximum": 1200,
+          "default": 0,
+          "unit": "cents"
+        },
+        "glide": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "default": 0,
+          "unit": "seconds"
+        },
+        "legato": {
+          "type": "boolean",
+          "default": false
+        },
+        "macros": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "targets"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_]+$",
+                "minLength": 1,
+                "maxLength": 32
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32,
+                "pattern": "^[A-Za-z0-9 _\\-]+$"
+              },
+              "targets": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": 64,
+                "items": {
+                  "type": "object",
+                  "required": ["moduleId", "parameter", "amount"],
+                  "properties": {
+                    "moduleId": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_]+$"
+                    },
+                    "parameter": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "amount": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1,
+                      "default": 0
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "ui": {
+      "type": "object",
+      "properties": {
+        "selectedTab": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "expandedModules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]+$"
+          },
+          "maxItems": 128
+        },
+        "collapsedClusters": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]+$"
+          },
+          "maxItems": 128
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "audioEdge": {
+      "type": "object",
+      "required": ["from", "to"],
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]+$"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^(output|[A-Za-z0-9_]+)$"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "modEdge": {
+      "type": "object",
+      "required": ["from", "to", "amount"],
+      "properties": {
+        "from": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]+$"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]+$"
+        },
+        "amount": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "default": 0
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "oscillatorParams": {
+      "type": "object",
+      "properties": {
+        "waveform": {
+          "type": "string",
+          "enum": ["sine", "saw", "square", "triangle", "noise"],
+          "default": "saw"
+        },
+        "pitch": {
+          "type": "number",
+          "minimum": -48,
+          "maximum": 48,
+          "default": 0,
+          "unit": "semitones"
+        },
+        "detune": {
+          "type": "number",
+          "minimum": -1200,
+          "maximum": 1200,
+          "default": 0,
+          "unit": "cents"
+        },
+        "phase": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0,
+          "unit": "cycle"
+        },
+        "level": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.8
+        }
+      },
+      "required": ["waveform", "pitch", "detune", "phase", "level"],
+      "additionalProperties": false
+    },
+
+    "filterParams": {
+      "type": "object",
+      "properties": {
+        "filterType": {
+          "type": "string",
+          "enum": ["lowpass", "highpass", "bandpass", "notch"],
+          "default": "lowpass"
+        },
+        "cutoff": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 20000,
+          "default": 1000,
+          "unit": "Hz",
+          "scale": "log"
+        },
+        "resonance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.2
+        },
+        "drive": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        },
+        "mix": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        }
+      },
+      "required": ["filterType", "cutoff", "resonance", "drive", "mix"],
+      "additionalProperties": false
+    },
+
+    "envelopeParams": {
+      "type": "object",
+      "properties": {
+        "attack": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 0.01,
+          "unit": "seconds"
+        },
+        "decay": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 0.2,
+          "unit": "seconds"
+        },
+        "sustain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.8
+        },
+        "release": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 0.5,
+          "unit": "seconds"
+        }
+      },
+      "required": ["attack", "decay", "sustain", "release"],
+      "additionalProperties": false
+    },
+
+    "lfoParams": {
+      "type": "object",
+      "properties": {
+        "shape": {
+          "type": "string",
+          "enum": ["sine", "triangle", "square", "saw", "random"],
+          "default": "sine"
+        },
+        "rate": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 20,
+          "default": 2,
+          "unit": "Hz"
+        },
+        "sync": {
+          "type": "boolean",
+          "default": false
+        },
+        "phase": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        },
+        "amount": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.5
+        }
+      },
+      "required": ["shape", "rate", "sync", "phase", "amount"],
+      "additionalProperties": false
+    },
+
+    "delayParams": {
+      "type": "object",
+      "properties": {
+        "time": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "default": 0.3,
+          "unit": "seconds"
+        },
+        "feedback": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.95,
+          "default": 0.35
+        },
+        "damping": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.2
+        },
+        "mix": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.25
+        }
+      },
+      "required": ["time", "feedback", "damping", "mix"],
+      "additionalProperties": false
+    },
+
+    "reverbParams": {
+      "type": "object",
+      "properties": {
+        "reverbType": {
+          "type": "string",
+          "enum": ["hall", "plate", "room", "spring"],
+          "default": "hall"
+        },
+        "size": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.7
+        },
+        "decay": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 20,
+          "default": 2.5,
+          "unit": "seconds"
+        },
+        "damping": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.3
+        },
+        "mix": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.3
+        }
+      },
+      "required": ["reverbType", "size", "decay", "damping", "mix"],
+      "additionalProperties": false
+    },
+
+    "distortionParams": {
+      "type": "object",
+      "properties": {
+        "drive": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.4
+        },
+        "tone": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.5
+        },
+        "mix": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.25
+        }
+      },
+      "required": ["drive", "tone", "mix"],
+      "additionalProperties": false
+    },
+
+    "chorusParams": {
+      "type": "object",
+      "properties": {
+        "rate": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 10,
+          "default": 1.5,
+          "unit": "Hz"
+        },
+        "depth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.4
+        },
+        "mix": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.3
+        }
+      },
+      "required": ["rate", "depth", "mix"],
+      "additionalProperties": false
+    },
+
+    "compressorParams": {
+      "type": "object",
+      "properties": {
+        "threshold": {
+          "type": "number",
+          "minimum": -60,
+          "maximum": 0,
+          "default": -18,
+          "unit": "dB"
+        },
+        "ratio": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 4
+        },
+        "attack": {
+          "type": "number",
+          "minimum": 0.0001,
+          "maximum": 0.1,
+          "default": 0.01,
+          "unit": "seconds"
+        },
+        "release": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 1,
+          "default": 0.2,
+          "unit": "seconds"
+        },
+        "knee": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 12,
+          "default": 1,
+          "unit": "dB"
+        },
+        "makeup": {
+          "type": "number",
+          "minimum": -24,
+          "maximum": 24,
+          "default": 0,
+          "unit": "dB"
+        },
+        "mix": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        }
+      },
+      "required": [
+        "threshold", "ratio", "attack", "release", "knee", "makeup", "mix"
+      ],
+      "additionalProperties": false
+    },
+    "eqParams": {
+      "type": "object",
+      "properties": {
+        "lowGain": {
+          "type": "number",
+          "minimum": -24,
+          "maximum": 24,
+          "default": 0,
+          "unit": "dB"
+        },
+        "lowFreq": {
+          "type": "number",
+          "minimum": 20,
+          "maximum": 500,
+          "default": 120,
+          "unit": "Hz",
+          "scale": "log"
+        },
+        "lowQ": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10,
+          "default": 0.7
+        },
+        "midGain": {
+          "type": "number",
+          "minimum": -24,
+          "maximum": 24,
+          "default": 0,
+          "unit": "dB"
+        },
+        "midFreq": {
+          "type": "number",
+          "minimum": 200,
+          "maximum": 5000,
+          "default": 1000,
+          "unit": "Hz",
+          "scale": "log"
+        },
+        "midQ": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10,
+          "default": 1
+        },
+        "highGain": {
+          "type": "number",
+          "minimum": -24,
+          "maximum": 24,
+          "default": 0,
+          "unit": "dB"
+        },
+        "highFreq": {
+          "type": "number",
+          "minimum": 2000,
+          "maximum": 20000,
+          "default": 8000,
+          "unit": "Hz",
+          "scale": "log"
+        },
+        "highQ": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10,
+          "default": 0.7
+        },
+        "mix": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        }
+      },
+      "required": [
+        "lowGain", "lowFreq", "lowQ",
+        "midGain", "midFreq", "midQ",
+        "highGain", "highFreq", "highQ",
+        "mix"
+      ],
+      "additionalProperties": false
+    },
+
+    "limiterParams": {
+      "type": "object",
+      "properties": {
+        "threshold": {
+          "type": "number",
+          "minimum": -24,
+          "maximum": 0,
+          "default": -0.5,
+          "unit": "dB"
+        },
+        "release": {
+          "type": "number",
+          "minimum": 0.005,
+          "maximum": 0.5,
+          "default": 0.1,
+          "unit": "seconds"
+        },
+        "ceiling": {
+          "type": "number",
+          "minimum": -12,
+          "maximum": 0,
+          "default": 0,
+          "unit": "dB"
+        },
+        "lookahead": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.01,
+          "default": 0.003,
+          "unit": "seconds"
+        },
+        "mix": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        }
+      },
+      "required": ["threshold", "release", "ceiling", "lookahead", "mix"],
+      "additionalProperties": false
+    },
+
+    "module": {
+      "type": "object",
+      "required": ["id", "type", "signal", "parameters"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_]+$",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "oscillator",
+            "filter",
+            "envelope",
+            "lfo",
+            "delay",
+            "reverb",
+            "distortion",
+            "chorus",
+            "compressor",
+            "eq",
+            "limiter"
+          ]
+        },
+        "signal": {
+          "type": "string",
+          "enum": ["audio", "mod", "event"]
+        },
+        "parameters": { "type": "object" }
+      },
+
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "oscillator" } } },
+          "then": { "properties": { "parameters": { "$ref": "#/$defs/oscillatorParams" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "filter" } } },
+          "then": { "properties": { "parameters": { "$ref": "#/$defs/filterParams" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "envelope" } } },
+          "then": { "properties": { "parameters": { "$ref": "#/$defs/envelopeParams" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "lfo" } } },
+          "then": { "properties": { "parameters": { "$ref": "#/$defs/lfoParams" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "delay" } } },
+          "then": { "properties": { "parameters": { "$ref": "#/$defs/delayParams" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "reverb" } } },
+          "then": { "properties": { "parameters": { "$ref": "#/$defs/reverbParams" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "distortion" } } },
+          "then": { "properties": { "parameters": { "$ref": "#/$defs/distortionParams" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "chorus" } } },
+          "then": { "properties": { "parameters": { "$ref": "#/$defs/chorusParams" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "compressor" } } },
+          "then": { "properties": { "parameters": { "$ref": "#/$defs/compressorParams" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "eq" } } },
+          "then": { "properties": { "parameters": { "$ref": "#/$defs/eqParams" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "limiter" } } },
+          "then": { "properties": { "parameters": { "$ref": "#/$defs/limiterParams" } } }
+        }
+      ],
+
+      "additionalProperties": false
+    }
+  }
+}

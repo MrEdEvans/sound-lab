@@ -1,0 +1,37 @@
+{
+  "name": "Warm Pad",
+  "author": "Test User",
+  "description": "Soft warm pad with gentle detune and slow attack.",
+  "tags": ["pad", "warm", "soft"],
+  "genre": "ambient",
+  "mood": "calm",
+  "createdAt": "2025-01-01T12:00:00Z",
+  "updatedAt": "2025-01-01T12:00:00Z",
+  "favorite": false,
+  "rating": 4,
+  "engineVersion": "1.0.0",
+  "presetFormatVersion": 1,
+  "uuid": "11111111-1111-1111-1111-111111111111",
+
+  "osc1": {
+    "gain": 0.6,
+    "detune": -4
+  },
+
+  "osc2": {
+    "gain": 0.5,
+    "detune": 4
+  },
+
+  "filter": {
+    "cutoff": 1200,
+    "resonance": 0.15
+  },
+
+  "env1": {
+    "attack": 0.8,
+    "decay": 0.4,
+    "sustain": 0.7,
+    "release": 1.2
+  }
+}
