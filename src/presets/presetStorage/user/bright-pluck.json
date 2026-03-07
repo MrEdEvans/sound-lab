@@ -1,0 +1,67 @@
+{
+  "metadata": {
+    "name": "Bright Pluck",
+    "author": "Test User",
+    "description": "Sharp pluck with bright filter and quick decay.",
+    "tags": ["pluck", "bright"],
+    "createdAt": "2025-01-02T12:00:00Z",
+    "updatedAt": "2025-01-02T12:00:00Z"
+  },
+
+  "engine": {
+    "polyphony": 8,
+    "tuning": 0,
+    "glide": 0,
+    "legato": false,
+    "macros": []
+  },
+
+  "modules": [
+    {
+      "id": "osc1",
+      "type": "oscillator",
+      "signal": "audio",
+      "parameters": {
+        "waveform": "saw",
+        "pitch": 0,
+        "detune": 0,
+        "phase": 0,
+        "level": 0.8
+      }
+    },
+    {
+      "id": "filter",
+      "type": "filter",
+      "signal": "audio",
+      "parameters": {
+        "filterType": "lowpass",
+        "cutoff": 6000,
+        "resonance": 0.25,
+        "drive": 0,
+        "mix": 1
+      }
+    },
+    {
+      "id": "env1",
+      "type": "envelope",
+      "signal": "mod",
+      "parameters": {
+        "attack": 0.01,
+        "decay": 0.15,
+        "sustain": 0.2,
+        "release": 0.3
+      }
+    }
+  ],
+
+  "audioRouting": [],
+  "modRouting": [],
+
+  "ui": {
+    "selectedTab": "main",
+    "expandedModules": [],
+    "collapsedClusters": []
+  },
+
+  "userData": {}
+}

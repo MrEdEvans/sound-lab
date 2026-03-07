@@ -1,116 +1,141 @@
 // ============================================================================
-// Voice.js
-// A single polyphonic voice: oscillator lifecycle, envelopes, smoothing,
-// timing, and DSP behavior. Routing is delegated to VoiceGraphBuilder.
+// src/audio/voices/Voice.js
+// Schema‑driven per‑voice synthesizer voice.
+// Creates oscillators on noteOn(), applies envelopes, smoothing, and
+// preserves all anti‑click behavior from the legacy engine.
 // ============================================================================
 
-import VoiceGraphBuilder from "../graph/VoiceGraphBuilder";
+import { buildVoiceGraph } from "../graph/buildVoiceGraph.js";
+import { applyVoiceModMatrix } from "../modulation/applyVoiceModMatrix.js";
 
 export default class Voice {
-    constructor(context, preset, note, velocity) {
+    constructor(context, preset, note = null, velocity = 1.0) {
         this.context = context;
         this.preset = preset;
+
         this.note = note;
         this.velocity = velocity;
 
         this.active = false;
-        this.oscillators = [];
         this.startTime = null;
 
-        // Validate preset structure before building anything
-        this.validatePreset();
+        // Oscillator instances created on noteOn()
+        this.oscillators = [];
 
-        // Build the per‑voice graph dynamically
-        this.graph = new VoiceGraphBuilder(context, preset).build();
+        // Build per‑voice graph directly
+        this.graph = buildVoiceGraph(context, preset, new Map());
 
-        // The final output of this voice
+        // Final output
         this.output = this.graph.voiceBus;
 
-        // Envelope state (strict: must exist)
-        this.ampEnv = preset.envelopes.amp;
+        // Extract amp envelope
+        this.ampEnv = this.getAmpEnvelope();
+
+        // Validate preset
+        this.validatePreset();
     }
 
-    // ------------------------------------------------------------------------
-    // PRESET VALIDATION (strict)
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
+    // VALIDATION
+    // --------------------------------------------------------------------------
     validatePreset() {
-        if (!this.preset.oscillators || this.preset.oscillators.length === 0) {
-            throw new Error("Preset must define at least one oscillator.");
+        const oscModules = this.preset.modules.filter(m => m.type === "oscillator");
+        if (oscModules.length === 0) {
+            throw new Error("Preset must define at least one oscillator module.");
         }
 
-        for (const osc of this.preset.oscillators) {
-            if (!osc.id) {
-                throw new Error("Each oscillator must have an 'id'.");
-            }
-            if (!osc.type) {
-                throw new Error(`Oscillator '${osc.id}' is missing required field 'type'.`);
-            }
-            if (typeof osc.transpose !== "number") {
-                throw new Error(`Oscillator '${osc.id}' must define numeric 'transpose'.`);
-            }
+        if (!this.ampEnv) {
+            throw new Error("Preset must include an envelope module with id 'amp' or type 'envelope'.");
         }
 
-        if (!this.preset.envelopes || !this.preset.envelopes.amp) {
-            throw new Error("Preset must define an amp envelope at preset.envelopes.amp.");
-        }
-
-        const env = this.preset.envelopes.amp;
         ["attack", "decay", "sustain", "release"].forEach(param => {
-            if (typeof env[param] !== "number") {
+            if (typeof this.ampEnv[param] !== "number") {
                 throw new Error(`Amp envelope missing required numeric field '${param}'.`);
             }
         });
     }
 
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
+    // EXTRACT AMP ENVELOPE
+    // --------------------------------------------------------------------------
+    getAmpEnvelope() {
+        const env = this.preset.modules.find(
+            m => m.type === "envelope" && (m.id === "amp" || true)
+        );
+        return env ? env.parameters : null;
+    }
+
+    // --------------------------------------------------------------------------
     // NOTE ON
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
     noteOn(time = this.context.currentTime) {
+
+        console.log("Voice.noteOn", this.note, "at", time);
+        console.log("Voice.noteOn: VoiceBus gain at noteOn:", this.graph.voiceBus.gain.value);
+
+
         this.active = true;
         this.startTime = time;
 
-        // Create oscillators per preset
         this.createOscillators(time);
-
-        // Apply amplitude envelope
         this.applyAmpEnvelope(time);
+
+        // Apply modulation matrix
+        applyVoiceModMatrix(
+            this.context,
+            this.preset,
+            this.graph.modules,
+            this.graph,
+            time
+        );
     }
 
-    // ------------------------------------------------------------------------
-    // CREATE OSCILLATORS (preserves your DSP behavior)
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
+    // CREATE OSCILLATORS (schema‑driven, anti‑click preserved)
+    // --------------------------------------------------------------------------
     createOscillators(time) {
-        const oscDefs = this.preset.oscillators;
+        console.log("Creating oscillators for note", this.note);
 
-        oscDefs.forEach((oscDef) => {
+        const oscModules = this.preset.modules.filter(m => m.type === "oscillator");
+
+        oscModules.forEach(oscDef => {
             const osc = this.context.createOscillator();
 
-            // Strict: waveform must be explicitly defined
-            osc.type = oscDef.type;
+            // Waveform
+            osc.type = oscDef.parameters.waveform;
 
-            // Frequency with smoothing
-            const freq = this.midiToFreq(this.note + oscDef.transpose);
+            // Frequency
+            const pitch = oscDef.parameters.pitch || 0;
+            const detune = oscDef.parameters.detune || 0;
+            const freq = this.midiToFreq(this.note + pitch);
+
             osc.frequency.setValueAtTime(freq, time);
+            osc.detune.setValueAtTime(detune, time);
 
-            // Micro‑delay start to avoid phase alignment clicks
-            const startAt = time + (oscDef.startDelay || 0);
+            // Micro‑delay start
+            const startDelay = oscDef.parameters.startDelay || 0;
+            const startAt = time + startDelay;
 
-            // Connect oscillator → its gain node (created by VoiceGraphBuilder)
-            const gainNode = this.graph[oscDef.id];
+            // Correct module lookup
+            const gainNode = this.graph.modules.get(oscDef.id);
             if (!gainNode) {
-                throw new Error(`VoiceGraphBuilder did not create module for oscillator '${oscDef.id}'.`);
+                console.warn("Missing gain node for oscillator", oscDef.id, this.graph.modules);
+                throw new Error(`Voice graph missing gain node for oscillator '${oscDef.id}'.`);
             }
 
             osc.connect(gainNode);
+
+            console.log("Osc connected →", oscDef.id, "startAt", startAt);
+
             osc.start(startAt);
 
             this.oscillators.push(osc);
         });
     }
 
-    // ------------------------------------------------------------------------
-    // APPLY AMP ENVELOPE (preserves your smoothing behavior)
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
+    // APPLY AMP ENVELOPE (anti‑click preserved)
+    // --------------------------------------------------------------------------
     applyAmpEnvelope(time) {
         const env = this.ampEnv;
         const g = this.graph.voiceBus.gain;
@@ -120,14 +145,26 @@ export default class Voice {
 
         g.cancelScheduledValues(time);
         g.setValueAtTime(0, time);
+
         g.linearRampToValueAtTime(1, attackEnd);
         g.linearRampToValueAtTime(env.sustain, decayEnd);
+
+        // Diagnostic
+        setTimeout(() => {
+            console.log("VoiceBus gain after envelope:", this.graph.voiceBus.gain.value);
+        }, 50);
+
+
+
     }
 
-    // ------------------------------------------------------------------------
-    // NOTE OFF
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
+    // NOTE OFF (anti‑click preserved)
+    // --------------------------------------------------------------------------
     noteOff(time = this.context.currentTime) {
+
+        console.log("Voice.noteOff", this.note, "at", time);
+
         if (!this.active) return;
         this.active = false;
 
@@ -144,24 +181,22 @@ export default class Voice {
         });
     }
 
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
     // CLEANUP
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
     dispose() {
         this.oscillators.forEach(osc => {
-            try { osc.disconnect(); } catch {}
+            try { osc.disconnect(); } catch { }
         });
 
-        Object.values(this.graph).forEach(node => {
-            if (node && node.disconnect) {
-                try { node.disconnect(); } catch {}
-            }
+        this.graph.allNodes.forEach(node => {
+            try { node.disconnect(); } catch { }
         });
     }
 
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
     // HELPERS
-    // ------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
     midiToFreq(m) {
         return 440 * Math.pow(2, (m - 69) / 12);
     }

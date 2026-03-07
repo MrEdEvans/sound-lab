@@ -39,10 +39,11 @@
 
     // Fake engine for testing
     const engine = {
-      state: {
-        osc1: { gain: 0.5, detune: 0 },
-        filter: { cutoff: 800, resonance: 0.2 }
-      }
+      setPolyphony: (v) => console.log("setPolyphony", v),
+      setTuning: (v) => console.log("setTuning", v),
+      setGlide: (v) => console.log("setGlide", v),
+      setLegato: (v) => console.log("setLegato", v),
+      setMacros: (v) => console.log("setMacros", v)
     };
 
     const pm = new PresetManager();
@@ -56,7 +57,7 @@
 
     // --- Fetch preset ---
     document.getElementById("btnFetch").onclick = async () => {
-      const preset = await pm.fetch("init"); // or any known ID
+      const preset = await pm.fetch("init");
       log(preset);
     };
 
@@ -75,9 +76,8 @@
     // --- Snapshot engine ---
     document.getElementById("btnSnapshot").onclick = () => {
       const snap = pm.snapshotFromEngine(engine, {
-        engineVersion: "1.0.0",
-        presetFormatVersion: 1,
-        name: "Snapshot Test"
+        name: "Snapshot Test",
+        author: "Tester"
       });
       log(snap);
     };
@@ -85,11 +85,10 @@
     // --- Save preset ---
     document.getElementById("btnSave").onclick = async () => {
       const snap = pm.snapshotFromEngine(engine, {
-        engineVersion: "1.0.0",
-        presetFormatVersion: 1,
-        name: "Saved Test"
+        name: "Saved Test",
+        author: "Tester"
       });
-      const saved = await pm.save("saved-test", snap.engineState, snap.metadata);
+      const saved = await pm.save("saved-test", snap);
       log(saved);
     };
 
