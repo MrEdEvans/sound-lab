@@ -100,7 +100,10 @@ export class PresetManager {
                 { from: "filter1", to: "voiceBus" }
             ],
 
-            modRouting: [],
+            modRouting: [
+                { from: "amp", to: "voiceMix.gain", amount: 1 }
+            ],
+
 
             ui: {
                 selectedTab: "main",

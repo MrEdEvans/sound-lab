@@ -55,25 +55,35 @@ export default class AudioEngine {
     // BUILD GLOBAL FX CHAIN
     // --------------------------------------------------------------------------
     buildGlobalFX() {
-        // Voice mix node: sum of all voices
-        const voiceMix = this.context.createGain();
-        voiceMix.gain.value = 1.0;
+        // 1. Sum per‑voice *post‑envelope* outputs (voiceBus)
+        const voiceBusSum = this.context.createGain();
+        voiceBusSum.gain.value = 1.0;
 
-        // Connect each voice output → voiceMix
         for (const voice of this.voiceAllocator.voices) {
-            voice.output.connect(voiceMix);
+            if (!voice.graph || !voice.graph.voiceBus) {
+                console.warn("[AudioEngine] Voice missing voiceBus in graph:", voice);
+                continue;
+            }
+            voice.graph.voiceBus.connect(voiceBusSum);
         }
 
-        // Build global FX graph
+        // 2. Build global FX graph from summed voiceBus
         this.globalGraph = buildGlobalGraph(
             this.context,
             this.currentPreset,
-            voiceMix
+            voiceBusSum
         );
 
-        // Connect global output → master
+        // 3. Connect global output → master
         this.globalGraph.output.connect(this.masterGain);
+
+        // 4. Diagnostics
+        console.log(
+            "%c[AudioEngine] Global FX built. Input = summed voiceBus, Output → masterGain",
+            "color:#0af"
+        );
     }
+
 
     // --------------------------------------------------------------------------
     // LOAD NEW PRESET

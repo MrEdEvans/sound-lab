@@ -1,15 +1,22 @@
 // ============================================================================
 // src/audio/graph/buildVoiceGraph.js
 // Final version — enforced routing, envelope-safe, mono/poly correct.
+// WITH GRAPH-DUMP DIAGNOSTICS
 // ============================================================================
 
 export function buildVoiceGraph(context, preset) {
     const allNodes = [];
     const moduleNodes = new Map();
 
+    // Helper: track connections for debugging
+    function trackConnection(from, to) {
+        if (!from._connections) from._connections = [];
+        from._connections.push(to);
+    }
+
     // Final per‑voice output (post-envelope)
     const voiceBus = context.createGain();
-    voiceBus.gain.value = 1.0;
+    voiceBus.gain.value = 0.3;
     allNodes.push(voiceBus);
 
     // Envelope-controlled per‑voice mix
@@ -19,6 +26,7 @@ export function buildVoiceGraph(context, preset) {
 
     // voiceMix → voiceBus (single, enforced path)
     voiceMix.connect(voiceBus);
+    trackConnection(voiceMix, voiceBus);
 
     const voiceModules = (preset.modules || []).filter(m => m.signal === "voice");
 
@@ -81,10 +89,40 @@ export function buildVoiceGraph(context, preset) {
         // Safe connect
         try {
             fromNode.connect(toNode);
+            trackConnection(fromNode, toNode);
         } catch (e) {
             console.warn("Voice routing failed:", edge, e);
         }
     }
+
+    // --------------------------------------------------------------------------
+    // 3. DUMP THE ENTIRE GRAPH (with forced visibility)
+    // --------------------------------------------------------------------------
+    setTimeout(() => {
+        console.log("%c================ VOICE GRAPH DUMP START ================",
+            "background:#0af;color:white;font-size:16px;padding:4px;");
+        console.log("");
+
+        console.log("voiceBus:", voiceBus);
+        console.log("voiceMix:", voiceMix);
+
+        console.log("%cModules:", "color:#0af;font-weight:bold;");
+        for (const [id, node] of moduleNodes.entries()) {
+            console.log(`  Module ${id}:`, node);
+            console.log("    Connections:", node._connections || "(none)");
+        }
+
+        console.log("%cAll Nodes:", "color:#0af;font-weight:bold;");
+        allNodes.forEach((n, i) => {
+            console.log(`  Node[${i}]:`, n);
+            console.log("    Connections:", n._connections || "(none)");
+        });
+
+        console.log("%c================ VOICE GRAPH DUMP END ==================",
+            "background:#0af;color:white;font-size:16px;padding:4px;");
+    }, 0);
+
+
 
     return {
         voiceBus,   // final per‑voice output
@@ -104,7 +142,7 @@ function createVoiceModule(context, mod) {
         case "oscillator": {
             // Per‑oscillator gain node
             const g = context.createGain();
-            g.gain.value = p.level ?? 1.0;
+            g.gain.value = p.level ?? 0.3;
             return g;
         }
 

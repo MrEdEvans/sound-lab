@@ -1,0 +1,59 @@
+{
+  "metadata": {
+    "name": "Diagnostic-Basic",
+    "author": "System",
+    "description": "One oscillator for engine testing.",
+    "tags": [],
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "updatedAt": "2025-01-01T00:00:00.000Z"
+  },
+  "engine": {
+    "polyphony": 1,
+    "tuning": 0,
+    "glide": 0,
+    "legato": false,
+    "macros": []
+  },
+  "modules": [
+    {
+      "id": "osc1",
+      "type": "oscillator",
+      "signal": "voice",
+      "parameters": {
+        "waveform": "sine",
+        "pitch": 0,
+        "detune": 0,
+        "phase": 0,
+        "level": 0.2
+      }
+    },
+    {
+      "id": "filter1",
+      "type": "filter",
+      "signal": "voice",
+      "parameters": {
+        "filterType": "lowpass",
+        "cutoff": 20000,
+        "resonance": 0,
+        "drive": 0,
+        "mix": 1
+      }
+    },
+    {
+      "id": "amp",
+      "type": "envelope",
+      "signal": "mod",
+      "parameters": {
+        "attack": 0.01,
+        "decay": 0.2,
+        "sustain": 0.8,
+        "release": 0.3
+      }
+    }
+  ],
+  "audioRouting": [
+    { "from": "osc1", "to": "filter1" },
+    { "from": "filter1", "to": "voiceBus" }
+  ],
+  "modRouting": []
+}

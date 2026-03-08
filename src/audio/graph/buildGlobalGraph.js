@@ -3,6 +3,7 @@
 // Schema‑driven global FX graph builder.
 // Builds the post‑voice global processing chain (delay, reverb, EQ, limiter, etc.).
 // This is the global counterpart to buildVoiceGraph.js.
+// WITH GRAPH-DUMP DIAGNOSTICS
 // ============================================================================
 
 /**
@@ -10,12 +11,18 @@
  *
  * @param {AudioContext} context
  * @param {Object} preset - schema preset with modules[] and audioRouting[]
- * @param {AudioNode} voiceMixNode - summed output of all voices
+ * @param {AudioNode} voiceBusSumNode - summed *post‑voice* output of all voices
  * @returns {{ output: AudioNode, modules: Map<string, AudioNode>, allNodes: AudioNode[] }}
  */
-export function buildGlobalGraph(context, preset, voiceMixNode) {
+export function buildGlobalGraph(context, preset, voiceBusSumNode) {
     const allNodes = [];
     const moduleNodes = new Map();
+
+    // Helper: track connections for debugging
+    function trackConnection(from, to) {
+        if (!from._connections) from._connections = [];
+        from._connections.push(to);
+    }
 
     // --------------------------------------------------------------------------
     // 1. Create global modules
@@ -31,12 +38,13 @@ export function buildGlobalGraph(context, preset, voiceMixNode) {
     }
 
     // --------------------------------------------------------------------------
-    // 2. Connect voice mix → first global module (if any)
+    // 2. Connect summed voiceBus → first global module (if any)
     // --------------------------------------------------------------------------
     const firstGlobal = findFirstGlobalModule(preset, moduleNodes);
 
     if (firstGlobal) {
-        voiceMixNode.connect(firstGlobal);
+        voiceBusSumNode.connect(firstGlobal);
+        trackConnection(voiceBusSumNode, firstGlobal);
     }
 
     // --------------------------------------------------------------------------
@@ -52,6 +60,7 @@ export function buildGlobalGraph(context, preset, voiceMixNode) {
 
         try {
             fromNode.connect(toNode);
+            trackConnection(fromNode, toNode);
         } catch (e) {
             console.warn("Global routing failed:", edge, e);
         }
@@ -60,7 +69,37 @@ export function buildGlobalGraph(context, preset, voiceMixNode) {
     // --------------------------------------------------------------------------
     // 4. Determine final output node
     // --------------------------------------------------------------------------
-    const outputNode = findLastGlobalModule(preset, moduleNodes) || voiceMixNode;
+    const outputNode = findLastGlobalModule(preset, moduleNodes) || voiceBusSumNode;
+
+    // --------------------------------------------------------------------------
+    // 5. DUMP THE ENTIRE GLOBAL GRAPH
+    // --------------------------------------------------------------------------
+    setTimeout(() => {
+        console.log(
+            "%c================ GLOBAL GRAPH DUMP START ================",
+            "background:#0af;color:white;font-size:14px;padding:4px;"
+        );
+
+        console.log("voiceBusSumNode (input from all voices):", voiceBusSumNode);
+        console.log("outputNode (final global output):", outputNode);
+
+        console.log("%cGlobal Modules:", "color:#0af;font-weight:bold;");
+        for (const [id, node] of moduleNodes.entries()) {
+            console.log(`  Module ${id}:`, node);
+            console.log("    Connections:", node._connections || "(none)");
+        }
+
+        console.log("%cAll Global Nodes:", "color:#0af;font-weight:bold;");
+        allNodes.forEach((n, i) => {
+            console.log(`  Node[${i}]:`, n);
+            console.log("    Connections:", n._connections || "(none)");
+        });
+
+        console.log(
+            "%c================ GLOBAL GRAPH DUMP END ==================",
+            "background:#0af;color:white;font-size:14px;padding:4px;"
+        );
+    }, 0);
 
     return {
         output: outputNode,
@@ -97,7 +136,6 @@ function createGlobalModule(context, mod) {
         }
 
         case "reverb": {
-            // Placeholder: real reverb uses a ConvolverNode with an IR
             const r = context.createConvolver();
             return r;
         }
