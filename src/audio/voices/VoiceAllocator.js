@@ -1,6 +1,6 @@
 // ============================================================================
 // src/audio/voices/VoiceAllocator.js
-// Manages polyphony, voice stealing, release tracking, and click‑free reuse.
+// Cross‑browser safe version — no getValueAtTime(), tracks gain manually.
 // ============================================================================
 
 import Voice from "./Voice.js";
@@ -13,8 +13,8 @@ export class VoiceAllocator {
         this.maxVoices = preset.engine?.polyphony || 8;
 
         this.voices = [];
-        this.activeVoices = new Map();    // note → voice
-        this.releasingVoices = new Set(); // voices currently in release
+        this.activeVoices = new Map();
+        this.releasingVoices = new Set();
 
         this.buildVoices();
     }
@@ -27,134 +27,254 @@ export class VoiceAllocator {
 
         for (let i = 0; i < this.maxVoices; i++) {
             const v = new Voice(this.context, this.preset, null, 0);
+
+            // Track gain manually (cross‑browser)
+            v.currentGain = 0;
+
             console.log(
-                `%c[Allocator] Built voice ${i}, voiceBus.gain=`,
+                `%c[Allocator] Built voice ${i}, voiceMix.gain=`,
                 "color:#0ff",
-                v.graph.voiceBus.gain
+                v.graph.voiceMix.gain
             );
+
             this.voices.push(v);
         }
+
+        this.dumpState("After buildVoices()");
     }
 
     // --------------------------------------------------------------------------
     // STATE HELPERS
     // --------------------------------------------------------------------------
     isActive(voice) {
-        for (const v of this.activeVoices.values()) {
-            if (v === voice) return true;
-        }
-        return false;
+        return [...this.activeVoices.values()].includes(voice);
     }
 
     isReleasing(voice) {
         return this.releasingVoices.has(voice);
     }
 
-    isFree(voice) {
-        return !this.isActive(voice) && !this.isReleasing(voice);
+    isTrulyFree(voice) {
+        return (
+            !this.isActive(voice) &&
+            !this.isReleasing(voice) &&
+            voice.oscillators.length === 0 &&
+            voice.currentGain === 0
+        );
     }
 
     // --------------------------------------------------------------------------
-    // Find a free voice
+    // DIAGNOSTICS
+    // --------------------------------------------------------------------------
+    dumpState(label = "") {
+        console.log(`%c=== VoiceAllocator State ${label} ===`, "color:#fa0");
+
+        this.voices.forEach((v, i) => {
+            const state = this.isActive(v)
+                ? "ACTIVE"
+                : this.isReleasing(v)
+                    ? "RELEASING"
+                    : this.isTrulyFree(v)
+                        ? "FREE"
+                        : "BUSY";
+
+            console.log(
+                `Voice ${i}: ${state}, note=${v.note}, vel=${v.velocity}, gain=${v.currentGain.toFixed(4)}, osc=${v.oscillators.length}`
+            );
+        });
+
+        console.log("Active voices:", this.activeVoices);
+        console.log("Releasing voices:", this.releasingVoices);
+        console.log("%c=============================", "color:#fa0");
+    }
+
+    // --------------------------------------------------------------------------
+    // Find a truly free voice
     // --------------------------------------------------------------------------
     findFreeVoice() {
-        return this.voices.find(v => this.isFree(v));
+        const v = this.voices.find(v => this.isTrulyFree(v));
+        console.log(
+            `%c[Allocator] findFreeVoice → ${v ? this.voices.indexOf(v) : "none"}`,
+            "color:#8f8"
+        );
+        return v || null;
     }
 
     // --------------------------------------------------------------------------
-    // Steal the quietest active voice
+    // Steal an ACTIVE voice (polyphonic mode)
     // --------------------------------------------------------------------------
-    stealVoice() {
-        // 1. Prefer stealing a releasing voice
-        for (const v of this.voices) {
-            if (this.isReleasing(v)) {
-                console.log(`[Allocator] Stealing releasing voice ${this.voices.indexOf(v)}`);
-                this.forceSilent(v);
-                return v;
-            }
-        }
+    stealActiveVoice() {
+        console.log("%c[Allocator] stealActiveVoice() called", "color:#f44");
 
-        // 2. Otherwise steal the quietest active voice
         let quietest = null;
         let minGain = Infinity;
 
         for (const v of this.voices) {
             if (!this.isActive(v)) continue;
 
-            const g = v.graph.voiceMix.gain.value; // FIX
+            const g = v.currentGain;
+            const idx = this.voices.indexOf(v);
+
+            console.log(`[Allocator] Active voice ${idx} gain=${g.toFixed(4)}`);
+
             if (g < minGain) {
                 minGain = g;
                 quietest = v;
             }
         }
 
+        if (!quietest) return null;
+
+        const idx = this.voices.indexOf(quietest);
         console.log(
-            `[Allocator] Stealing active voice ${this.voices.indexOf(quietest)} (gain=${minGain})`
+            `%c[Allocator] Insufficient voices. Stealing ACTIVE voice ${idx}.`,
+            "color:#f84"
         );
 
-        this.forceSilent(quietest);
+        const t = this.context.currentTime;
+
+        // Remove from active map
+        for (const [note, v] of this.activeVoices.entries()) {
+            if (v === quietest) {
+                this.activeVoices.delete(note);
+                break;
+            }
+        }
+
+        // Cleanup
+        this.forceSilent(quietest, t);
+        quietest.killAllOscillators(t);
+        quietest.resetEnvelope(t);
+
+        quietest.currentGain = 0;
+
         return quietest;
     }
-
 
     // --------------------------------------------------------------------------
     // Force a voice silent
     // --------------------------------------------------------------------------
-    forceSilent(voice) {
-        const now = this.context.currentTime;
+    forceSilent(voice, time = this.context.currentTime) {
         const g = voice.graph.voiceMix.gain;
 
-        g.cancelScheduledValues(now);
-        g.setValueAtTime(g.value, now);
-        g.linearRampToValueAtTime(0, now + 0.005);
+        console.log(
+            `%c[Allocator] forceSilent voice ${this.voices.indexOf(voice)}, gain=${voice.currentGain}`,
+            "color:#f0a"
+        );
+
+        g.cancelScheduledValues(time);
+        g.setValueAtTime(voice.currentGain, time);
+        g.linearRampToValueAtTime(0, time + 0.005);
+
+        voice.currentGain = 0;
     }
 
     // --------------------------------------------------------------------------
     // NOTE ON
     // --------------------------------------------------------------------------
     noteOn(note, velocity = 1.0, time = this.context.currentTime) {
-
-        if (this.activeVoices.has(note)) {
-            const voice = this.activeVoices.get(note);
-            console.log(
-                `%c[Allocator] noteOn (retrigger) ${note} → voice ${this.voices.indexOf(voice)}`,
-                "color:#4af"
-            );
-            voice.note = note;
-            voice.velocity = velocity;
-            voice.noteOn(time);
-            return;
-        }
-
-        let voice = this.findFreeVoice();
-        if (!voice) voice = this.stealVoice();
-
-        this.releasingVoices.delete(voice);
-
-        voice.note = note;
-        voice.velocity = velocity;
-
         console.log(
-            `%c[Allocator] noteOn ${note} → voice ${this.voices.indexOf(voice)}`,
+            `%c[Allocator] noteOn(${note}) t=${time.toFixed(3)} vel=${velocity}`,
             "color:#4af"
         );
 
+        // Retrigger same note
+        if (this.activeVoices.has(note)) {
+            const voice = this.activeVoices.get(note);
+            voice.note = note;
+            voice.velocity = velocity;
+            voice.noteOn(time);
+            this.dumpState("After noteOn (retrigger)");
+            return;
+        }
+
+        // 1. Try free voice
+        let voice = this.findFreeVoice();
+
+        // 2. Try stealing an ACTIVE voice (polyphonic mode)
+        if (!voice) voice = this.stealActiveVoice();
+
+        // 3. MONO MODE: always steal the single voice
+        if (!voice && this.maxVoices === 1) {
+            const v = this.voices[0];
+
+            console.log(
+                "%c[Allocator] Polyphony=1. Stealing the only voice.",
+                "color:#f84"
+            );
+
+            const t = time;
+
+            this.activeVoices.clear();
+            this.releasingVoices.delete(v);
+
+            this.forceSilent(v, t);
+            v.killAllOscillators(t);
+
+            v.currentGain = 0;
+
+            voice = v;
+        }
+
+        // 4. Emergency fallback: all voices releasing (polyphony > 1)
+        if (!voice) {
+            const releasing = [...this.releasingVoices][0];
+            if (releasing) {
+                console.log(
+                    "%c[Allocator] All voices releasing. Stealing RELEASING voice.",
+                    "color:#f84"
+                );
+
+                const t = time;
+
+                this.releasingVoices.delete(releasing);
+
+                this.forceSilent(releasing, t);
+                releasing.killAllOscillators(t);
+                releasing.resetEnvelope(t);
+
+                releasing.currentGain = 0;
+
+                voice = releasing;
+            }
+        }
+
+        if (!voice) {
+            console.log(
+                "%c[Allocator] noteOn: no voice available. Dropping note.",
+                "color:#f00"
+            );
+            return;
+        }
+
+        // Use the chosen voice
+        voice.note = note;
+        voice.velocity = velocity;
+
         voice.noteOn(time);
 
+        // Voice.noteOn() will schedule gain ramps — we track manually
+        voice.currentGain = 0;
+
         this.activeVoices.set(note, voice);
+
+        this.dumpState("After noteOn");
     }
 
     // --------------------------------------------------------------------------
     // NOTE OFF
     // --------------------------------------------------------------------------
     noteOff(note, time = this.context.currentTime) {
-        const voice = this.activeVoices.get(note);
-        if (!voice) return;
-
         console.log(
-            `%c[Allocator] noteOff ${note} → voice ${this.voices.indexOf(voice)}`,
+            `%c[Allocator] noteOff(${note}) t=${time.toFixed(3)}`,
             "color:#48f"
         );
+
+        const voice = this.activeVoices.get(note);
+        if (!voice) {
+            console.log("[Allocator] noteOff ignored (no active voice for note)", note);
+            return;
+        }
 
         voice.noteOff(time);
 
@@ -162,21 +282,31 @@ export class VoiceAllocator {
         this.releasingVoices.add(voice);
 
         voice.onReleaseComplete = () => {
+            voice.currentGain = 0;
             this.releasingVoices.delete(voice);
+            this.dumpState("After release complete");
+            voice.onReleaseComplete = null;
         };
+
+        this.dumpState("After noteOff");
     }
 
     // --------------------------------------------------------------------------
     // STOP ALL
     // --------------------------------------------------------------------------
     stopAll() {
+        console.log("%c[Allocator] stopAll()", "color:#f00");
+
         const now = this.context.currentTime;
 
         for (const v of this.voices) {
             try { v.noteOff(now); } catch { }
+            v.currentGain = 0;
         }
 
         this.activeVoices.clear();
         this.releasingVoices.clear();
+
+        this.dumpState("After stopAll");
     }
 }

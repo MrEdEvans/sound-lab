@@ -1,6 +1,6 @@
 // ============================================================================
 // src/audio/voices/Voice.js
-// Per‑voice synthesizer voice with diagnostics.
+// Per‑voice synthesizer voice with diagnostics + invariants.
 // ============================================================================
 
 import { buildVoiceGraph } from "../graph/buildVoiceGraph.js";
@@ -22,8 +22,12 @@ export default class Voice {
         this.graph = buildVoiceGraph(context, preset);
         this.output = this.graph.voiceMix;
 
+        // IMPORTANT: ensure voice starts silent
+        const g = this.graph.voiceMix.gain;
+        g.setValueAtTime(0, this.context.currentTime);
+
         console.log(
-            `%c[Voice] Created voice, voiceMix.gain node=`,
+            `%c[Voice] Created voice, voiceMix.gain=`,
             "color:#0ff",
             this.graph.voiceMix.gain
         );
@@ -51,12 +55,45 @@ export default class Voice {
     }
 
     // --------------------------------------------------------------------------
+    // INVARIANT HELPERS
+    // --------------------------------------------------------------------------
+    killAllOscillators(time = this.context.currentTime) {
+        if (this.oscillators.length > 0) {
+            console.log(
+                `%c[Voice] killAllOscillators (${this.oscillators.length}) at t=${time.toFixed(3)}`,
+                "color:#f80"
+            );
+        }
+        this.oscillators.forEach(osc => {
+            try { osc.stop(time); } catch { }
+        });
+        this.oscillators = [];
+    }
+
+    resetEnvelope(time = this.context.currentTime) {
+        const g = this.graph.voiceMix.gain;
+        console.log(
+            `%c[Voice] resetEnvelope at t=${time.toFixed(3)} (gain was ${g.value.toFixed(4)})`,
+            "color:#0aa"
+        );
+        g.cancelScheduledValues(time);
+        g.setValueAtTime(0, time);
+    }
+
+    // --------------------------------------------------------------------------
     // NOTE ON
     // --------------------------------------------------------------------------
     noteOn(time = this.context.currentTime) {
+        const g = this.graph.voiceMix.gain;
 
-        console.log("Voice.noteOn", this.note, "at", time);
-        console.log("Voice.noteOn: VoiceMix gain at noteOn:", this.graph.voiceMix.gain.value);
+        // Invariant: no leftover oscillators or envelope when reusing a voice
+        this.killAllOscillators(time);
+        this.resetEnvelope(time);
+
+        console.log(
+            `%c[Voice] noteOn note=${this.note} t=${time.toFixed(3)} gain=${g.value.toFixed(4)}`,
+            "color:#4af"
+        );
 
         this.active = true;
         this.startTime = time;
@@ -73,12 +110,6 @@ export default class Voice {
         );
 
         console.log(
-            `%c[Mod] voiceMix.gain after mod = ${this.graph.voiceMix.gain.value}`,
-            "color:#f0f"
-        );
-
-
-        console.log(
             `%c[Voice] osc count=${this.oscillators.length}`,
             "color:#0af"
         );
@@ -88,7 +119,10 @@ export default class Voice {
     // CREATE OSCILLATORS
     // --------------------------------------------------------------------------
     createOscillators(time) {
-        console.log("Creating oscillators for note", this.note);
+        console.log(
+            `%c[Voice] Creating oscillators for note ${this.note}`,
+            "color:#0cf"
+        );
 
         const oscModules = this.preset.modules.filter(m => m.type === "oscillator");
 
@@ -96,32 +130,31 @@ export default class Voice {
             const osc = this.context.createOscillator();
 
             const wf = oscDef.parameters.waveform;
-            switch (wf) {
-                case "saw": osc.type = "sawtooth"; break;
-                case "square":
-                case "sine":
-                case "triangle": osc.type = wf; break;
-                default: osc.type = "sine"; break;
-            }
+            osc.type = wf === "saw" ? "sawtooth" : wf;
 
             const pitch = Number(oscDef.parameters.pitch) || 0;
             const detune = Number(oscDef.parameters.detune) || 0;
-
             const freq = this.midiToFreq(this.note + pitch);
-
-            osc.frequency.setValueAtTime(freq, time);
-            osc.detune.setValueAtTime(detune, time);
 
             const startDelay = Number(oscDef.parameters.startDelay) || 0.002;
             const startAt = time + startDelay;
 
             const gainNode = this.graph.modules.get(oscDef.id);
-            if (!gainNode) throw new Error(`Missing gain node for oscillator '${oscDef.id}'.`);
+            if (!gainNode) {
+                throw new Error(`Missing gain node for oscillator '${oscDef.id}'.`);
+            }
+
+            console.log(
+                `%c[Voice] Osc → id=${oscDef.id} wf=${osc.type} freq=${freq.toFixed(
+                    2
+                )} detune=${detune} startAt=${startAt.toFixed(3)}`,
+                "color:#0cf"
+            );
+
+            osc.frequency.setValueAtTime(freq, time);
+            osc.detune.setValueAtTime(detune, time);
 
             osc.connect(gainNode);
-
-            console.log("Osc connected →", oscDef.id, "startAt", startAt);
-
             osc.start(startAt);
 
             this.oscillators.push(osc);
@@ -129,24 +162,30 @@ export default class Voice {
     }
 
     // --------------------------------------------------------------------------
-    // APPLY AMP ENVELOPE
+    // APPLY AMP ENVELOPE (on voiceMix.gain)
     // --------------------------------------------------------------------------
     applyAmpEnvelope(time) {
         const env = this.ampEnv;
         const g = this.graph.voiceMix.gain;
 
         console.log(
-            `[Env Params] attack=${env.attack} decay=${env.decay} sustain=${env.sustain} release=${env.release}`
+            `%c[Env] ADSR A=${env.attack} D=${env.decay} S=${env.sustain} R=${env.release}`,
+            "color:#0a0"
         );
-
         console.log(
-            `%c[Env] start gain=${g.value.toFixed(4)} at t=${time.toFixed(3)}`,
+            `%c[Env] start gain=${g.value.toFixed(4)} t=${time.toFixed(3)}`,
             "color:#0a0"
         );
 
         const startAt = time + 0.002;
         const attackEnd = startAt + env.attack;
         const decayEnd = attackEnd + env.decay;
+
+        console.log(
+            `[Env] schedule startAt=${startAt.toFixed(3)} attackEnd=${attackEnd.toFixed(
+                3
+            )} decayEnd=${decayEnd.toFixed(3)}`
+        );
 
         g.cancelScheduledValues(time);
         g.setValueAtTime(0, time);
@@ -156,31 +195,48 @@ export default class Voice {
 
         setTimeout(() => {
             console.log(
-                `%c[Env] gain 100ms later=${this.graph.voiceMix.gain.value.toFixed(4)}`,
+                `%c[Env] gain @attackEnd≈${g.value.toFixed(4)}`,
+                "color:#aa0"
+            );
+        }, env.attack * 1000);
+
+        setTimeout(() => {
+            console.log(
+                `%c[Env] gain @decayEnd≈${g.value.toFixed(4)}`,
+                "color:#aa0"
+            );
+        }, (env.attack + env.decay) * 1000);
+
+        setTimeout(() => {
+            console.log(
+                `%c[Env] gain 100ms later=${g.value.toFixed(4)}`,
                 "color:#aa0"
             );
         }, 100);
-
-        setTimeout(() => {
-            console.log("VoiceMix gain after envelope:", this.graph.voiceMix.gain.value);
-        }, 50);
     }
 
     // --------------------------------------------------------------------------
     // NOTE OFF
     // --------------------------------------------------------------------------
     noteOff(time = this.context.currentTime) {
-
-        console.log("Voice.noteOff", this.note, "at", time);
-
-        if (!this.active) return;
-        this.active = false;
-
-        const env = this.ampEnv;
         const g = this.graph.voiceMix.gain;
 
         console.log(
-            `%c[Env] release from gain=${g.value.toFixed(4)} at t=${time.toFixed(3)}`,
+            `%c[Voice] noteOff note=${this.note} t=${time.toFixed(3)} gain=${g.value.toFixed(4)}`,
+            "color:#f44"
+        );
+
+        if (!this.active) {
+            console.log("[Voice] noteOff ignored (not active)");
+            return;
+        }
+
+        this.active = false;
+
+        const env = this.ampEnv;
+
+        console.log(
+            `%c[Env] release from gain=${g.value.toFixed(4)} t=${time.toFixed(3)}`,
             "color:#a00"
         );
 
@@ -191,35 +247,34 @@ export default class Voice {
         const stopAt = time + env.release + 0.02;
 
         console.log(
-            `%c[Osc] stopping ${this.oscillators.length} oscillators at t=${stopAt.toFixed(3)}`,
+            `%c[Voice] stopping ${this.oscillators.length} osc at t=${stopAt.toFixed(3)}`,
             "color:#f80"
         );
 
         this.oscillators.forEach(osc => {
             try { osc.stop(stopAt); } catch { }
         });
-
         this.oscillators = [];
 
-        // ⭐ NEW: tell allocator when release is done
-        const releaseDoneAt = time + env.release;
+        // Notify allocator when release is done
         setTimeout(() => {
-            if (this.onReleaseComplete) {
-                this.onReleaseComplete();
-            }
+            console.log(
+                `%c[Voice] release complete, gain=${g.value.toFixed(4)}`,
+                "color:#0f0"
+            );
+            if (this.onReleaseComplete) this.onReleaseComplete();
         }, env.release * 1000);
 
         setTimeout(() => {
             console.log(
-                `%c[Voice] peak gain after note=${this.graph.voiceMix.gain.value.toFixed(4)}`,
+                `%c[Voice] gain after note=${g.value.toFixed(4)}`,
                 "color:#fa0"
             );
         }, 10);
     }
 
-
     dispose() {
-        this.oscillators.forEach(osc => { try { osc.disconnect(); } catch { } });
+        this.killAllOscillators();
         this.graph.allNodes.forEach(node => { try { node.disconnect(); } catch { } });
     }
 

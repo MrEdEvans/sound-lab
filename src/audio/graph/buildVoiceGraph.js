@@ -1,23 +1,23 @@
 // ============================================================================
 // src/audio/graph/buildVoiceGraph.js
-// Corrected version — prevents oscillators from driving voiceBus.gain
+// Final version — enforced routing, envelope-safe, mono/poly correct.
 // ============================================================================
 
 export function buildVoiceGraph(context, preset) {
     const allNodes = [];
     const moduleNodes = new Map();
 
-    // Final per‑voice output
+    // Final per‑voice output (post-envelope)
     const voiceBus = context.createGain();
     voiceBus.gain.value = 1.0;
     allNodes.push(voiceBus);
 
-    // NEW: voiceMix — this is what the envelope should modulate
+    // Envelope-controlled per‑voice mix
     const voiceMix = context.createGain();
-    voiceMix.gain.value = 0; // envelope drives THIS, not voiceBus.gain
+    voiceMix.gain.value = 0; // ADSR drives THIS
     allNodes.push(voiceMix);
 
-    // voiceMix → voiceBus
+    // voiceMix → voiceBus (single, enforced path)
     voiceMix.connect(voiceBus);
 
     const voiceModules = (preset.modules || []).filter(m => m.signal === "voice");
@@ -34,7 +34,7 @@ export function buildVoiceGraph(context, preset) {
     }
 
     // --------------------------------------------------------------------------
-    // 2. Wire audioRouting safely
+    // 2. Wire audioRouting with enforced rules
     // --------------------------------------------------------------------------
     const edges = preset.audioRouting || [];
 
@@ -42,13 +42,43 @@ export function buildVoiceGraph(context, preset) {
         let fromNode = moduleNodes.get(edge.from);
         let toNode = moduleNodes.get(edge.to);
 
-        // FIX: route "voiceBus" → voiceMix (NOT voiceBus)
+        // ================================================================
+        // HARD INVARIANT #1:
+        // NOTHING may connect directly to voiceBus.
+        // ================================================================
         if (edge.to === "voiceBus") {
+            console.warn(
+                "%c[Graph] WARNING: Direct connection to voiceBus is forbidden. Routing to voiceMix instead.",
+                "color:#f84",
+                edge
+            );
             toNode = voiceMix;
         }
 
-        if (!fromNode || !toNode) continue;
+        // ================================================================
+        // HARD INVARIANT #2:
+        // voiceBus may NEVER be used as a source.
+        // ================================================================
+        if (edge.from === "voiceBus") {
+            console.warn(
+                "%c[Graph] WARNING: voiceBus cannot be used as a source. Edge ignored.",
+                "color:#f84",
+                edge
+            );
+            continue;
+        }
 
+        // Validate nodes
+        if (!fromNode || !toNode) {
+            console.warn(
+                "%c[Graph] WARNING: Invalid routing edge (missing node). Skipping.",
+                "color:#fa0",
+                edge
+            );
+            continue;
+        }
+
+        // Safe connect
         try {
             fromNode.connect(toNode);
         } catch (e) {
@@ -57,8 +87,8 @@ export function buildVoiceGraph(context, preset) {
     }
 
     return {
-        voiceBus,
-        voiceMix,   // expose this so Voice.js can envelope it
+        voiceBus,   // final per‑voice output
+        voiceMix,   // envelope target
         modules: moduleNodes,
         allNodes
     };
@@ -87,7 +117,8 @@ function createVoiceModule(context, mod) {
         }
 
         case "envelope": {
-            // Envelope should modulate voiceMix.gain, not voiceBus.gain
+            // Envelope module itself is just a placeholder gain;
+            // actual ADSR is applied to voiceMix.gain in Voice.js.
             const g = context.createGain();
             g.gain.value = 1.0;
             return g;
