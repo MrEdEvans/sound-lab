@@ -32,16 +32,12 @@ export default class AudioEngine {
         this.masterGain.gain.value = 1.0;
         this.masterGain.connect(this.context.destination);
 
-
         // TEMP: sanity beep
         const testOsc = this.context.createOscillator();
         testOsc.frequency.value = 440;
         testOsc.connect(this.masterGain);
         testOsc.start(this.context.currentTime + 0.05);
         testOsc.stop(this.context.currentTime + 0.25);
-
-
-
 
         // Load preset
         this.currentPreset = preset;
@@ -90,8 +86,8 @@ export default class AudioEngine {
         // Stop all voices before rebuilding
         this.voiceAllocator.stopAll();
 
-        // Rebuild voices
-        this.voiceAllocator.applyPreset(preset);
+        // Rebuild voice allocator with new preset
+        this.voiceAllocator = new VoiceAllocator(this.context, this.currentPreset);
 
         // Rebuild global FX
         this.buildGlobalFX();

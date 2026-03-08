@@ -1,5 +1,3 @@
-// src/audio/modulation/applyVoiceModMatrix.js
-
 // ============================================================================
 // applyVoiceModMatrix.js
 // Schema‑driven per‑voice modulation matrix.
@@ -19,22 +17,55 @@
 export function applyVoiceModMatrix(context, preset, modules, graph, time) {
     const routes = preset.modRouting || [];
 
+    console.log(
+        `%c[ModMatrix] applying ${routes.length} routes`,
+        "color:#f0f"
+    );
+
     for (const route of routes) {
         const srcId = route.from;
         const dst = route.to;
         const amount = route.amount ?? 1.0;
 
+        console.log(
+            `%c[ModMatrix] Route: from='${srcId}' → to='${dst}' amount=${amount}`,
+            "color:#f0f"
+        );
+
         const srcNode = modules.get(srcId);
-        if (!srcNode) continue;
+        if (!srcNode) {
+            console.warn(
+                `%c[ModMatrix] Source '${srcId}' not found in modules`,
+                "color:#f88"
+            );
+            continue;
+        }
 
         // Target format: "filter1.cutoff"
         const [targetId, paramName] = dst.split(".");
         const targetNode = modules.get(targetId);
 
-        if (!targetNode) continue;
+        if (!targetNode) {
+            console.warn(
+                `%c[ModMatrix] Target node '${targetId}' not found`,
+                "color:#f88"
+            );
+            continue;
+        }
 
         const param = targetNode[paramName];
-        if (!(param instanceof AudioParam)) continue;
+        if (!(param instanceof AudioParam)) {
+            console.warn(
+                `%c[ModMatrix] Target param '${paramName}' on '${targetId}' is not an AudioParam`,
+                "color:#f88"
+            );
+            continue;
+        }
+
+        console.log(
+            `%c[ModMatrix] Connecting src='${srcId}' → ${targetId}.${paramName} (AudioParam)`,
+            "color:#f0f"
+        );
 
         // ------------------------------------------------------------------------
         // Create a dedicated GainNode for modulation scaling
@@ -42,12 +73,30 @@ export function applyVoiceModMatrix(context, preset, modules, graph, time) {
         const modGain = context.createGain();
         modGain.gain.setValueAtTime(amount, time);
 
+        console.log(
+            `%c[ModMatrix] modGain.gain set to ${amount}`,
+            "color:#f0f"
+        );
+
         // Connect source → modGain → targetParam
         try {
             srcNode.connect(modGain);
             modGain.connect(param);
+
+            console.log(
+                `%c[ModMatrix] Connected '${srcId}' → modGain → ${targetId}.${paramName}`,
+                "color:#0f0"
+            );
         } catch (e) {
             console.warn("Modulation routing failed:", route, e);
         }
+
+        // ------------------------------------------------------------------------
+        // Diagnostic: log the current value of the target param
+        // ------------------------------------------------------------------------
+        console.log(
+            `%c[ModMatrix] After connect: ${targetId}.${paramName}.value = ${param.value}`,
+            "color:#0ff"
+        );
     }
 }

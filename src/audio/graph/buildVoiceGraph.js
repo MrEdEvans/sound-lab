@@ -1,16 +1,24 @@
 // ============================================================================
 // src/audio/graph/buildVoiceGraph.js
-// Builds the per‑voice audio graph from schema modules + audioRouting.
+// Corrected version — prevents oscillators from driving voiceBus.gain
 // ============================================================================
 
 export function buildVoiceGraph(context, preset) {
     const allNodes = [];
     const moduleNodes = new Map();
 
-    // Voice bus (per‑voice output)
+    // Final per‑voice output
     const voiceBus = context.createGain();
-    voiceBus.gain.value = 0; // envelope will drive this
+    voiceBus.gain.value = 1.0;
     allNodes.push(voiceBus);
+
+    // NEW: voiceMix — this is what the envelope should modulate
+    const voiceMix = context.createGain();
+    voiceMix.gain.value = 0; // envelope drives THIS, not voiceBus.gain
+    allNodes.push(voiceMix);
+
+    // voiceMix → voiceBus
+    voiceMix.connect(voiceBus);
 
     const voiceModules = (preset.modules || []).filter(m => m.signal === "voice");
 
@@ -26,7 +34,7 @@ export function buildVoiceGraph(context, preset) {
     }
 
     // --------------------------------------------------------------------------
-    // 2. Wire audioRouting (including special case for voiceBus)
+    // 2. Wire audioRouting safely
     // --------------------------------------------------------------------------
     const edges = preset.audioRouting || [];
 
@@ -34,9 +42,9 @@ export function buildVoiceGraph(context, preset) {
         let fromNode = moduleNodes.get(edge.from);
         let toNode = moduleNodes.get(edge.to);
 
-        // Special case: allow routing to "voiceBus"
-        if (!toNode && edge.to === "voiceBus") {
-            toNode = voiceBus;
+        // FIX: route "voiceBus" → voiceMix (NOT voiceBus)
+        if (edge.to === "voiceBus") {
+            toNode = voiceMix;
         }
 
         if (!fromNode || !toNode) continue;
@@ -50,6 +58,7 @@ export function buildVoiceGraph(context, preset) {
 
     return {
         voiceBus,
+        voiceMix,   // expose this so Voice.js can envelope it
         modules: moduleNodes,
         allNodes
     };
@@ -63,7 +72,7 @@ function createVoiceModule(context, mod) {
 
     switch (mod.type) {
         case "oscillator": {
-            // Per‑oscillator gain node; actual OscillatorNode is created in Voice.js
+            // Per‑oscillator gain node
             const g = context.createGain();
             g.gain.value = p.level ?? 1.0;
             return g;
@@ -78,7 +87,7 @@ function createVoiceModule(context, mod) {
         }
 
         case "envelope": {
-            // Envelope is applied in Voice.js to voiceBus.gain; no audio node needed
+            // Envelope should modulate voiceMix.gain, not voiceBus.gain
             const g = context.createGain();
             g.gain.value = 1.0;
             return g;
